@@ -34,6 +34,17 @@ class User(AbstractUser):
         related_name='followers'
     )
     
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='customuser_set', 
+        blank=True
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='customuser_permissions_set',
+        blank=True
+    )
+    
     objects = CustomUserManager()
     
     class Meta:
@@ -45,6 +56,7 @@ class User(AbstractUser):
     
     def __str__(self):
         return self.username
+
 
 class UserFollow(models.Model):
     follower = models.ForeignKey(User, related_name='following_set', on_delete=models.CASCADE)
