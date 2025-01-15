@@ -2,8 +2,36 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Category, Event, Registration, Comment, UserFollow, UserPreferences
+from django.core.validators import EmailValidator
+from rest_framework.validators import UniqueValidator
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate
 
 User = get_user_model()
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate(self, data):
+        username = data.get('username')
+        password = data.get('password')
+
+        if username and password:
+            user = authenticate(username=username, password=password)
+            if user:
+                if not user.is_active:
+                    raise serializers.ValidationError('User account is disabled.')
+                data['username'] = user
+                return data
+            raise serializers.ValidationError('Unable to log in with provided credentials.')
+        raise serializers.ValidationError('Must include "email" and "password".')
+    
+
+class TokenSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
 
 class UserSerializer(serializers.ModelSerializer):
     followers_count = serializers.SerializerMethodField()
@@ -25,6 +53,47 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_following_count(self, obj):
         return obj.following.count()
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    profile_picture = serializers.ImageField(required=False)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    phone_number = serializers.CharField(max_length=15, required=False)
+    location = serializers.CharField(max_length=100, required=False)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'bio', 'password', 'profile_picture', 
+            'date_of_birth', 'phone_number', 'location', 'interests', 'following'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'validators': [EmailValidator()]},
+        }
+
+    username = serializers.CharField(
+        max_length=150,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all()), EmailValidator()]
+    )
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        
+        password = validated_data.pop('password')
+        validated_data['password'] = make_password(password)
+        
+        return user
+
+    def validate_password(self, value):
+        if len(value) < 8:
+            raise serializers.ValidationError("La contraseña debe tener al menos 8 caracteres.")
+        return value
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
