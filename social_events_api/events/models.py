@@ -22,7 +22,7 @@ class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True, validators=[EmailValidator()])
     bio = models.TextField(blank=True)
-    password = models.CharField(max_length=128) 
+    password = models.CharField()
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     date_of_birth = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
@@ -143,14 +143,14 @@ class Event(models.Model):
 
 class Registration(models.Model):
     STATUS_CHOICES = [
-        ('interested', 'Insterested'),
+        ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
     ]
     
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='registrations')
     attendee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_registrations')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='interested')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     registration_date = models.DateTimeField(auto_now_add=True)
     cancelled_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)

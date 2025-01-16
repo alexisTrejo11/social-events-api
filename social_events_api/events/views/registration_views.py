@@ -55,7 +55,6 @@ class RegistrationViewSet(viewsets.ModelViewSet):
                 {"success": "Inscripción succesfully cancel."},
                 status=status.HTTP_200_OK
             )
-    
 
     @action(detail=True, methods=['post'], url_path='confirm')
     def confirm(self, request, pk=None):
