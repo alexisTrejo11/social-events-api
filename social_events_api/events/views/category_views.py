@@ -34,12 +34,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.created_by != request.user:
-            return Response(
-                {"detail": "You do not have permission to delete this category."},
-                status=status.HTTP_403_FORBIDDEN
-            )
         return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
