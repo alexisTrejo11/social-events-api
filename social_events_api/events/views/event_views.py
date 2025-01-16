@@ -48,6 +48,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def favorite(self, request, pk=None):
+        """Toggle favorite status of an event"""
         event = self.get_object()
         user = request.user
         
