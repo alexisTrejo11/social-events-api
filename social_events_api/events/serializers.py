@@ -100,6 +100,28 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name', 'description', 'created_at']
 
+class CategoryCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'description', 'created_at', 'created_by']
+        read_only_fields = ['created_at', 'created_by']
+
+    def validate_name(self, value):
+        if not value or value.strip() == "":
+            raise serializers.ValidationError("The name field is required and cannot be empty.")
+        return value
+
+    def validate_description(self, value):
+        if not value or value.strip() == "":
+            raise serializers.ValidationError("The description field is required and cannot be empty.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['created_by'] = user
+        return super().create(validated_data)
+    
+
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
