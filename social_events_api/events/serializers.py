@@ -6,7 +6,8 @@ from django.core.validators import EmailValidator
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate
-from time import timezone
+from django.utils import timezone
+
 
 User = get_user_model()
 
