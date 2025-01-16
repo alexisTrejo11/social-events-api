@@ -153,6 +153,34 @@ class RegistrationSerializer(serializers.ModelSerializer):
                  'cancelled_date', 'notes']
         read_only_fields = ['registration_date', 'cancelled_date']
 
+
+class RegistrationCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Registration
+        fields = ['event', 'status', 'notes']
+        read_only_fields = ['id', 'registration_date', 'cancelled_date']
+
+    def validate(self, data):
+        event = data.get('event')
+        user = self.context['request'].user 
+        
+        if event.status == 'cancelled':
+            raise serializers.ValidationError("Can't make registration of a cancelled event")
+
+        if Registration.objects.filter(event=event, attendee=user).exists():
+            raise serializers.ValidationError("Already registred at the event")
+
+        if event.capacity and event.registrations.count() >= event.capacity:
+            raise serializers.ValidationError("The event has reached its maximum capacity.")
+        
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['attendee'] = user
+        return Registration.objects.create(**validated_data)
+
+
 class EventSerializer(serializers.ModelSerializer):
     organizer = UserSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
@@ -180,7 +208,6 @@ class EventSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.favorites.filter(id=request.user.id).exists()
         return False
-    
 
 class EventCreateSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(read_only=True)

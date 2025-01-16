@@ -143,14 +143,14 @@ class Event(models.Model):
 
 class Registration(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('interested', 'Insterested'),
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
     ]
     
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='registrations')
     attendee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_registrations')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='interested')
     registration_date = models.DateTimeField(auto_now_add=True)
     cancelled_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
