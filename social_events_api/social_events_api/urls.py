@@ -6,6 +6,10 @@ from events.views.auth_views import SignUpView, LoginView, LogoutView, TokenRefr
 from events.views.category_views import CategoryViewSet
 from events.views.event_views import EventViewSet
 from events.views.registration_views import RegistrationViewSet
+from events.views.comment_views import CommentViewSet
+
+comment_router = DefaultRouter()
+comment_router.register(r'comments', CommentViewSet, basename='comment')
 
 user_router = DefaultRouter()
 user_router.register(r'users', UserViewSet)
@@ -32,5 +36,5 @@ urlpatterns = [
     path('', include(category_router.urls)),
     path('', include(event_router.urls)),
     path('', include(registration_router.urls)),
-
+    path('', include(comment_router.urls)),
 ]
