@@ -116,10 +116,6 @@ class CategoryCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("The description field is required and cannot be empty.")
         return value
 
-    def create(self, validated_data):
-        user = self.context['request'].user
-        validated_data['created_by'] = user
-        return super().create(validated_data)
 
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
