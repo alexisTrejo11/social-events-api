@@ -45,19 +45,16 @@ class CategoryViewSet(viewsets.ModelViewSet):
             page: Page number for pagination
             page_size: Number of items per page
         """
-        # Get sort parameters from query params
         sort_by = request.query_params.get('sort_by')
         sort_direction = request.query_params.get('sort_direction')
         search_query = request.query_params.get('search')
 
-        # Get sorted queryset from service
         queryset = self.category_service.get_sorted_categories(
             sort_by=sort_by,
             sort_direction=sort_direction,
             search_query=search_query
         )
 
-        # Apply pagination
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
