@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt.token_blacklist',
-    'events'
+    'events',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
@@ -68,6 +69,7 @@ REST_FRAMEWORK = {
         'anon': '40/minute', 
         'user': '60/minute',  
     },
+    
 }
 
 ROOT_URLCONF = 'social_events_api.urls'
