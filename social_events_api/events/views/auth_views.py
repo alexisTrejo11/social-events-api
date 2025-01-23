@@ -50,7 +50,7 @@ class AuthView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         validation = self.auth_service.validate_login(serializer.validated_data)
-        if not validation.is_success:
+        if not validation.success:
             return Response({'message': validation.error_message}, 
                             status=status.HTTP_400_BAD_REQUEST)
 

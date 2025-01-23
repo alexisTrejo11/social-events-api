@@ -7,7 +7,7 @@ import re
 class UserService:
     def validate(self, data: Dict[Any, Any]) -> Result:  
         """
-        Username automatic unique evaluation by Django
+        "Django automatically handles the unique validation for the username."
         """
 
         if self.__is_email_taken(data.get('email')):

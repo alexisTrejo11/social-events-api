@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 from events.views.user_views import UserViewSet, UserPreferencesView
 from events.views.auth_views import AuthView
 from events.views.category_views import CategoryViewSet
-from events.views.event_views import EventViewSet
+from events.views.event_command_views import EventCommandViewSet
+from events.views.event_query_views import EventQueryViewSet
 from events.views.registration_views import RegistrationViewSet
 from events.views.comment_views import CommentViewSet
 
@@ -18,7 +19,8 @@ category_router = DefaultRouter()
 category_router.register(r'categories', CategoryViewSet, basename='category')
 
 event_router = DefaultRouter()
-event_router.register(r'events', EventViewSet, basename='event')
+event_router.register(r'events/commands', EventCommandViewSet, basename='event-commands')
+event_router.register(r'events/queries', EventQueryViewSet, basename='event-queries')
 
 registration_router = DefaultRouter()
 registration_router.register(r'registrations', RegistrationViewSet, basename='registration')
