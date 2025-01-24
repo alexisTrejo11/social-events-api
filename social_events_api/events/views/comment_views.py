@@ -28,8 +28,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         if not validation.success:
             return Response(data=validation.error_message, status=status.HTTP_404_NOT_FOUND)
 
-        self.comment_service.create(serializer.validated_data, user)
+        coment = self.comment_service.create(serializer.validated_data, user)
 
+        CommentSerializer(coment).data
         return Response(status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):

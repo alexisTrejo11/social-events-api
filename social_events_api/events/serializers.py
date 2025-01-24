@@ -77,16 +77,15 @@ class CategoryCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("The description field is required and cannot be empty.")
         return value
 
-
 class CommentSerializer(serializers.ModelSerializer):
-    author = UserSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
     likes_count = serializers.SerializerMethodField()
     replies_count = serializers.SerializerMethodField(read_only=True)
-    
+    author_id = serializers.IntegerField(source='author.id', read_only=True)
+
     class Meta:
         model = Comment
-        fields = ['id', 'event', 'author', 'content', 'created_at', 
+        fields = ['id', 'event', 'author_id' , 'content', 'created_at', 
                  'updated_at', 'parent', 'replies', 'likes_count', 'replies_count']
         read_only_fields = ['created_at', 'updated_at','replies_count']
 
