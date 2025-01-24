@@ -1,70 +1,74 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from ..models import Comment, Event
-from ..serializers import CommentCreateSerializer
+from ..serializers import CommentCreateSerializer, CommentSerializer
+from ..service.comment_service import CommentService
+from ..service.event_query_service import EventQueryService
+from ..models import Comment
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
-    serializer_class = CommentCreateSerializer
+    serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    comment_service = CommentService()
+    event_service = EventQueryService()
 
-    def get_queryset(self):
-        """Filter comments by event if event_id is provided"""
-        queryset = Comment.objects.all()
-        event_id = self.request.query_params.get('event', None)
-        if event_id:
-            queryset = queryset.filter(event_id=event_id, parent=None)
-        return queryset
+    def get_serializer_class(self):
+        if self.action == 'create': 
+            return CommentCreateSerializer
+        return super().get_serializer_class()
+    
+    def create(self, request):
+        user = request.user
 
-    def perform_create(self, serializer):
-        """Set the author as the current user"""
-        serializer.save(author=self.request.user)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        validation = self.comment_service.validate_create(serializer.validated_data)
+        if not validation.success:
+            return Response(data=validation.error_message, status=status.HTTP_404_NOT_FOUND)
+
+        self.comment_service.create(serializer.validated_data, user)
+
+        return Response(status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        """Only allow users to edit their own comments"""
         instance = self.get_object()
-        if instance.author != request.user:
-            return Response(
-                {"detail": "You do not have permission to edit this comment."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+
+        self.comment_service.validate_authority(instance, request.user)
+        
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        """Only allow users to delete their own comments"""
         instance = self.get_object()
-        if instance.author != request.user:
-            return Response(
-                {"detail": "You do not have permission to delete this comment."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.comment_service.validate_authority(instance, request.user)
+
         return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
-        """Toggle like status of a comment"""
         comment = self.get_object()
         user = request.user
         
-        if comment.likes.filter(id=user.id).exists():
-            comment.likes.remove(user)
-            return Response({
-                'status': 'unliked',
-                'likes_count': comment.likes.count()
-            })
-        else:
-            comment.likes.add(user)
-            return Response({
-                'status': 'liked',
-                'likes_count': comment.likes.count()
-            })
+        message = self.comment_service.like(comment, user)
+        
+        return Response(data=message, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path="/eventId/{pk}")
+    def get_by_event_id(self, pk):
+        event = self.event_service.get_event_by_id_or_slug(pk)
+        if not event:
+            Response(data="Event not found", status=status.HTTP_404_NOT_FOUND)
+
+        comments = self.comment_service.get_by_event(event)
+
+        comments = CommentSerializer(comments, many=True).data
+        return Response(data=comments, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['get'])
     def replies(self, request, pk=None):
-        """Get all replies for a comment"""
         comment = self.get_object()
-        replies = comment.replies.all()
-        serializer = self.get_serializer(replies, many=True)
-        return Response(serializer.data)
+        replies = self.comment_service.get_replies(comment)
+        
+        replies = self.get_serializer(replies, many=True)
+        return Response(replies.data)

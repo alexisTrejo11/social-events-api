@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from ..models import Registration
-from django.utils import timezone
 from ..serializers import RegistrationSerializer, RegistrationCreateSerializer
 from ..service.registration_service import RegistrationService
 

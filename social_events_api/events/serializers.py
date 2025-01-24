@@ -82,12 +82,13 @@ class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
     likes_count = serializers.SerializerMethodField()
+    replies_count = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Comment
         fields = ['id', 'event', 'author', 'content', 'created_at', 
-                 'updated_at', 'parent', 'replies', 'likes_count']
-        read_only_fields = ['created_at', 'updated_at']
+                 'updated_at', 'parent', 'replies', 'likes_count', 'replies_count']
+        read_only_fields = ['created_at', 'updated_at','replies_count']
 
     def get_replies(self, obj):
         if obj.parent is None:  # Only get replies for parent comments
@@ -97,6 +98,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_likes_count(self, obj):
         return obj.likes.count()
+    
+    def get_replies_count(self, obj):
+        return obj.replies.count()
     
 class CommentCreateSerializer(serializers.ModelSerializer):
     author = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -109,14 +113,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             'id', 'event', 'content', 'parent', 'author',
             'created_at', 'updated_at', 'likes_count', 'replies_count'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'author']
-
-    def validate_content(self, value):
-        if len(value.strip()) < 1:
-            raise serializers.ValidationError("Comment content cannot be empty")
-        if len(value) > 1000:
-            raise serializers.ValidationError("Comment is too long (max 1000 characters)")
-        return value.strip()
+        read_only_fields = ['id', 'created_at', 'updated_at', 'author']
 
     def validate_parent(self, value):
         if value:
@@ -125,12 +122,13 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             if value.event_id != self.initial_data.get('event'):
                 raise serializers.ValidationError("Reply must be to a comment on the same event")
         return value
-
+    
     def get_likes_count(self, obj):
         return obj.likes.count()
-
+    
     def get_replies_count(self, obj):
         return obj.replies.count()
+    
 
 class RegistrationSerializer(serializers.ModelSerializer):
     attendee = UserSerializer(read_only=True)
