@@ -7,129 +7,183 @@ from django.shortcuts import get_object_or_404
 from ..models import Registration
 from ..serializers import RegistrationSerializer, RegistrationCreateSerializer
 from ..service.registration_service import RegistrationService
+from ..utils.swagger_examples import _REGISTRATION_EXAMPLE, REGISTRATION_ERROR_EXAMPLES as _ERROR_EXAMPLES
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing event registrations, including creation, retrieval, 
-    cancellation, and confirmation of registrations, as well as listing user-specific registrations.
+    API endpoint for managing event registrations
+    
+    Actions:
+    - create: Register for an event (Authenticated)
+    - cancel: Cancel registration (Authenticated)
+    - confirm: Confirm registration (Authenticated)
+    - list_user_registrations: Get user's registrations (Authenticated)
+    - retrieve: Get registration details (Public)
     """
     queryset = Registration.objects.all()
     registration_service = RegistrationService()
 
     def get_serializer_class(self):
+        """Select serializer based on action type"""
         if self.action == 'create':
             return RegistrationCreateSerializer
         return RegistrationSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'cancel', 'list_user_registrations']:
+        """Dynamically assign permissions based on action"""
+        if self.action in ['create', 'cancel', 'confirm', 'list_user_registrations']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
     @swagger_auto_schema(
-        operation_summary="Create a new registration",
-        operation_description=(
-            "Create a new registration for an event. "
-            "The authenticated user is automatically set as the attendee."
-        ),
+        operation_summary="Create registration",
+        operation_description="Register for an event (Authenticated users only)",
         request_body=RegistrationCreateSerializer,
         responses={
-            201: RegistrationSerializer,
-            400: "Bad Request: Validation failed."
-        }
+            201: openapi.Response(
+                description="Registration created",
+                schema=RegistrationSerializer,
+                examples={'application/json': _REGISTRATION_EXAMPLE}
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={'application/json': _ERROR_EXAMPLES['VALIDATION_ERROR']}
+            ),
+            403: openapi.Response(
+                description="Permission error",
+                examples={'application/json': _ERROR_EXAMPLES['PERMISSION_ERROR']}
+            ),
+            409: openapi.Response(
+                description="Conflict error",
+                examples={'application/json': _ERROR_EXAMPLES['CONFLICT_ERROR']}
+            )
+        },
+        tags=['Registrations']
     )
     def create(self, request, *args, **kwargs):
+        """Handle registration creation with validation"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.validated_data['attendee'] = request.user
         
         validation = self.registration_service.validate_creation(serializer.validated_data)
         if not validation.success:
-            return Response(data=validation.error_message, 
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': validation.error_message}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         registration = self.registration_service.create(serializer.validated_data)
-        
-        registration = RegistrationSerializer(registration).data
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            RegistrationSerializer(registration).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @swagger_auto_schema(
         method="post",
-        operation_summary="Cancel a registration",
-        operation_description=(
-            "Cancel a specific registration by its ID. "
-            "Only the attendee or an authorized user can cancel the registration."
-        ),
+        operation_summary="Cancel registration",
+        operation_description="Cancel existing registration (Authenticated user only)",
         responses={
-            200: openapi.Response("Registration successfully cancelled."),
-            404: "Not Found: Registration not found.",
-            403: "Forbidden: User does not have permission to cancel this registration."
-        }
+            200: openapi.Response(
+                description="Registration cancelled",
+                examples={'application/json': {'detail': 'Registration cancelled successfully'}}
+            ),
+            403: openapi.Response(
+                description="Permission error",
+                examples={'application/json': _ERROR_EXAMPLES['PERMISSION_ERROR']}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={'application/json': _ERROR_EXAMPLES['NOT_FOUND_ERROR']}
+            )
+        },
+        tags=['Registrations']
     )
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel(self, request, pk=None):
-        registration = get_object_or_404(Registration, pk=pk)
+        """Handle registration cancellation"""
+        registration = self.get_object()
         self.registration_service.validate_authority(registration, request.user)
-        
         self.registration_service.cancel(registration)
-
         return Response(
-            {"success": "Registration successfully cancelled."},
+            {"detail": "Registration cancelled successfully"},
             status=status.HTTP_200_OK
         )
 
     @swagger_auto_schema(
         method="post",
-        operation_summary="Confirm a registration",
-        operation_description=(
-            "Confirm a specific registration by its ID. "
-            "Only an authorized user can confirm the registration."
-        ),
+        operation_summary="Confirm registration",
+        operation_description="Confirm a pending registration (Authorized users only)",
         responses={
-            200: openapi.Response("Registration successfully confirmed."),
-            404: "Not Found: Registration not found.",
-            403: "Forbidden: User does not have permission to confirm this registration."
-        }
+            200: openapi.Response(
+                description="Registration confirmed",
+                examples={'application/json': {'detail': 'Registration confirmed successfully'}}
+            ),
+            403: openapi.Response(
+                description="Permission error",
+                examples={'application/json': _ERROR_EXAMPLES['PERMISSION_ERROR']}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={'application/json': _ERROR_EXAMPLES['NOT_FOUND_ERROR']}
+            )
+        },
+        tags=['Registrations']
     )
     @action(detail=True, methods=['post'], url_path='confirm')
     def confirm(self, request, pk=None):
-        registration = get_object_or_404(Registration, pk=pk)
+        """Handle registration confirmation"""
+        registration = self.get_object()
         self.registration_service.validate_authority(registration, request.user)
-
         self.registration_service.confirm(registration)
-
         return Response(
-            {"success": "Registration successfully confirmed."},
+            {"detail": "Registration confirmed successfully"},
             status=status.HTTP_200_OK
         )
 
     @swagger_auto_schema(
         method="get",
         operation_summary="List user registrations",
-        operation_description=(
-            "Retrieve all registrations associated with the currently authenticated user."
-        ),
+        operation_description="Get all registrations for current user",
         responses={
-            200: RegistrationSerializer(many=True),
-        }
+            200: openapi.Response(
+                description="User registrations",
+                schema=RegistrationSerializer(many=True),
+                examples={'application/json': [_REGISTRATION_EXAMPLE]}
+            )
+        },
+        tags=['Registrations']
     )
     @action(detail=False, methods=['get'], url_path='my-registrations')
     def list_user_registrations(self, request):
-        user = request.user
-        registrations = Registration.objects.filter(attendee=user)
-        serializer = self.get_serializer(registrations, many=True)
-        return Response(serializer.data)
+        """Retrieve current user's registrations"""
+        registrations = self.registration_service.get_user_registrations(request.user)
+        return Response(
+            RegistrationSerializer(registrations, many=True).data,
+            status=status.HTTP_200_OK
+        )
 
     @swagger_auto_schema(
-        operation_summary="Retrieve a registration",
-        operation_description="Retrieve details of a specific registration by its ID.",
+        operation_summary="Get registration details",
+        operation_description="Retrieve detailed information about a specific registration",
         responses={
-            200: RegistrationSerializer,
-            404: "Not Found: Registration not found."
-        }
+            200: openapi.Response(
+                description="Registration details",
+                schema=RegistrationSerializer,
+                examples={'application/json': _REGISTRATION_EXAMPLE}
+            ),
+            404: openapi.Response(
+                description="Not found",
+                examples={'application/json': _ERROR_EXAMPLES['NOT_FOUND_ERROR']}
+            )
+        },
+        tags=['Registrations']
     )
     def retrieve(self, request, *args, **kwargs):
+        """Get registration details"""
         instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        return Response(
+            RegistrationSerializer(instance).data,
+            status=status.HTTP_200_OK
+        )

@@ -4,30 +4,47 @@ from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.pagination import PageNumberPagination
+
 from ..models import Category
 from ..serializers import CategorySerializer, CategoryCreateSerializer
 from ..service.category_service import CategoryService
-from rest_framework.pagination import PageNumberPagination
+
 
 class CategoryPagination(PageNumberPagination):
+    """
+    Custom pagination class for Category endpoints.
+    """
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Category operations:
+    - List, retrieve, create, update, and delete categories.
+    - Supports sorting, searching, and pagination.
+    """
     queryset = Category.objects.all()
-    category_service = CategoryService
+    serializer_class = CategorySerializer
     pagination_class = CategoryPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
+    category_service = CategoryService()
 
     def get_serializer_class(self):
+        """
+        Returns the appropriate serializer class based on the action.
+        """
         if self.action == 'create':
             return CategoryCreateSerializer
         return CategorySerializer
 
     def get_permissions(self):
+        """
+        Returns the appropriate permissions based on the action.
+        """
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [permissions.IsAuthenticated]
         else:
@@ -35,7 +52,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(
-        operation_description="List categories with optional sorting, searching, and pagination.",
+        operation_description="List all categories with optional sorting, searching, and pagination.",
         manual_parameters=[
             openapi.Parameter(
                 'sort_by', openapi.IN_QUERY, description="Field to sort by ('name' or 'created_at')", type=openapi.TYPE_STRING
@@ -56,6 +73,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
         responses={200: CategorySerializer(many=True)}
     )
     def list(self, request, *args, **kwargs):
+        """
+        Endpoint to list categories with optional sorting, searching, and pagination.
+        """
         sort_by = request.query_params.get('sort_by')
         sort_direction = request.query_params.get('sort_direction')
         search_query = request.query_params.get('search')
@@ -76,10 +96,16 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(
         operation_description="Retrieve a category by its ID.",
-        responses={200: CategorySerializer(), 404: 'Category not found'}
+        responses={
+            200: CategorySerializer(),
+            404: openapi.Response(description="Category not found")
+        }
     )
     @action(detail=True, methods=['get'])
     def get_by_id(self, request, pk=None):
+        """
+        Endpoint to retrieve a specific category by its ID.
+        """
         category = get_object_or_404(Category, pk=pk)
         serializer = self.get_serializer(category)
         return Response(serializer.data)
@@ -87,48 +113,64 @@ class CategoryViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_description="Create a new category.",
         request_body=CategoryCreateSerializer,
-        responses={201: CategorySerializer(), 400: 'Validation error'}
+        responses={
+            201: CategorySerializer(),
+            400: openapi.Response(description="Validation error")
+        }
     )
     def create(self, request, *args, **kwargs):
+        """
+        Endpoint to create a new category.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-    
+
         new_category = self.category_service.create_category(
-            data=serializer.validated_data, 
+            data=serializer.validated_data,
             user=request.user
         )
 
-        new_category = self.get_serializer(new_category).data
-        return Response(new_category, status=status.HTTP_201_CREATED)
+        response_serializer = self.get_serializer(new_category)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         operation_description="Update an existing category (full or partial).",
         request_body=CategoryCreateSerializer,
-        responses={200: CategorySerializer(), 400: 'Validation error'}
+        responses={
+            200: CategorySerializer(),
+            400: openapi.Response(description="Validation error")
+        }
     )
     def update(self, request, *args, **kwargs):
+        """
+        Endpoint to update an existing category.
+        """
         partial = kwargs.pop('partial', False)
-        instance = self.get_object()  
+        instance = self.get_object()
 
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
 
-        category_updated = self.category_service.update_category(
+        updated_category = self.category_service.update_category(
             instance=instance,
             data=serializer.validated_data,
             user=request.user
-        )        
-        
-        category_updated = self.get_serializer(category_updated).data
-        return Response(category_updated)
+        )
+
+        response_serializer = self.get_serializer(updated_category)
+        return Response(response_serializer.data)
 
     @swagger_auto_schema(
         operation_description="Delete a category by its ID.",
-        responses={204: 'No content', 403: 'Forbidden'}
+        responses={
+            204: openapi.Response(description="No content"),
+            403: openapi.Response(description="Forbidden")
+        }
     )
     def destroy(self, request, *args, **kwargs):
+        """
+        Endpoint to delete a category.
+        """
         instance = self.get_object()
-        
         self.category_service.delete_category(instance, request.user)
-
         return Response(status=status.HTTP_204_NO_CONTENT)

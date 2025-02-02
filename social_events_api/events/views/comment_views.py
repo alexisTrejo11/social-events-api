@@ -7,6 +7,7 @@ from ..serializers import CommentCreateSerializer, CommentSerializer
 from ..service.comment_service import CommentService
 from ..service.event_query_service import EventQueryService
 from ..models import Comment
+from ..utils.swagger_examples import _COMMENT_EXAMPLE, _COMMENT_LIST_EXAMPLE, COMMENT_ERROR_EXAMPLES as _ERROR_EXAMPLES
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
@@ -16,181 +17,169 @@ class CommentViewSet(viewsets.ModelViewSet):
     event_service = EventQueryService()
 
     def get_serializer_class(self):
-        """Returns the appropriate serializer based on the action."""
-        if self.action == 'create': 
+        """Return appropriate serializer based on action."""
+        if self.action == 'create':
             return CommentCreateSerializer
         return super().get_serializer_class()
 
     @swagger_auto_schema(
-        operation_description="Create a new comment. Only authenticated users can create comments.",
+        operation_description="Create a new comment (authenticated users only)",
         request_body=CommentCreateSerializer,
         responses={
             201: openapi.Response(
-                description="Comment successfully created",
-                examples={
-                    'application/json': {
-                        'id': 1,
-                        'text': 'This is a comment',
-                        'author': 'user1',
-                        'created_at': '2025-01-24T14:22:00Z'
-                    }
-                }
+                description="Comment created successfully",
+                examples={'application/json': _COMMENT_EXAMPLE}
             ),
-            404: openapi.Response(
-                description="Failed to validate the comment creation",
-                examples={
-                    'application/json': {'error': 'Error creating the comment'}
-                }
+            400: openapi.Response(
+                description="Validation error",
+                examples={'application/json': _ERROR_EXAMPLES['VALIDATION_ERROR']}
+            ),
+            403: openapi.Response(
+                description="Authorization error",
+                examples={'application/json': _ERROR_EXAMPLES['FORBIDDEN_ERROR']}
             )
         },
         tags=['Comment']
     )
     def create(self, request):
+        """Create a new comment with validated data."""
         user = request.user
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         validation = self.comment_service.validate_create(serializer.validated_data)
         if not validation.success:
-            return Response(data=validation.error_message, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                data={'detail': validation.error_message},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         comment = self.comment_service.create(serializer.validated_data, user)
-        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CommentSerializer(comment).data,
+            status=status.HTTP_201_CREATED
+        )
 
     @swagger_auto_schema(
-        operation_description="Update an existing comment. Only the author can update their comment.",
+        operation_description="Update comment (author only)",
         request_body=CommentSerializer,
         responses={
             200: openapi.Response(
-                description="Comment successfully updated",
-                examples={
-                    'application/json': {
-                        'id': 1,
-                        'text': 'Updated comment text',
-                        'author': 'user1',
-                        'created_at': '2025-01-24T14:22:00Z'
-                    }
-                }
+                description="Comment updated successfully",
+                examples={'application/json': _COMMENT_EXAMPLE}
             ),
             400: openapi.Response(
-                description="Error updating the comment",
-                examples={
-                    'application/json': {'error': 'Not authorized to update this comment'}
-                }
+                description="Validation error",
+                examples={'application/json': _ERROR_EXAMPLES['VALIDATION_ERROR']}
+            ),
+            403: openapi.Response(
+                description="Authorization error",
+                examples={'application/json': _ERROR_EXAMPLES['FORBIDDEN_ERROR']}
             )
         },
         tags=['Comment']
     )
     def update(self, request, *args, **kwargs):
+        """Update an existing comment with authorization check."""
         instance = self.get_object()
         self.comment_service.validate_authority(instance, request.user)
         return super().update(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Delete an existing comment. Only the author can delete their comment.",
+        operation_description="Delete comment (author only)",
         responses={
-            200: openapi.Response(
-                description="Comment successfully deleted",
-                examples={
-                    'application/json': {'message': 'Comment successfully deleted'}
-                }
-            ),
-            400: openapi.Response(
-                description="Error deleting the comment",
-                examples={
-                    'application/json': {'error': 'Not authorized to delete this comment'}
-                }
+            204: openapi.Response(description="Comment deleted successfully"),
+            403: openapi.Response(
+                description="Authorization error",
+                examples={'application/json': _ERROR_EXAMPLES['FORBIDDEN_ERROR']}
             )
         },
         tags=['Comment']
     )
     def destroy(self, request, *args, **kwargs):
+        """Delete a comment with authorization check."""
         instance = self.get_object()
         self.comment_service.validate_authority(instance, request.user)
         return super().destroy(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Like a comment. Authenticated users can like a comment.",
+        operation_description="Like a comment (authenticated users only)",
         responses={
             200: openapi.Response(
-                description="Like successfully registered",
-                examples={
-                    'application/json': {'message': 'Like successfully registered'}
-                }
+                description="Like registered successfully",
+                examples={'application/json': {'detail': 'Like successfully registered'}}
             ),
             400: openapi.Response(
-                description="Error registering the like",
-                examples={
-                    'application/json': {'error': 'Error registering the like'}
-                }
+                description="Like processing error",
+                examples={'application/json': _ERROR_EXAMPLES['LIKE_ERROR']}
             )
         },
         tags=['Comment']
     )
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
+        """Handle comment liking functionality."""
         comment = self.get_object()
         user = request.user
         message = self.comment_service.like(comment, user)
-        return Response(data=message, status=status.HTTP_200_OK)
+        return Response(
+            data={'detail': message},
+            status=status.HTTP_200_OK if 'success' in message.lower() else status.HTTP_400_BAD_REQUEST
+        )
 
     @swagger_auto_schema(
-        operation_description="Get comments by event ID.",
+        operation_description="Get comments by event ID",
+        manual_parameters=[
+            openapi.Parameter(
+                'eventId', openapi.IN_PATH,
+                description="ID of the event",
+                type=openapi.TYPE_INTEGER
+            )
+        ],
         responses={
             200: openapi.Response(
-                description="Comments successfully fetched",
-                examples={
-                    'application/json': [
-                        {
-                            'id': 1,
-                            'text': 'Comment on the event',
-                            'author': 'user1',
-                            'created_at': '2025-01-24T14:22:00Z'
-                        }
-                    ]
-                }
+                description="Comments retrieved successfully",
+                examples={'application/json': _COMMENT_LIST_EXAMPLE}
             ),
             404: openapi.Response(
                 description="Event not found",
-                examples={
-                    'application/json': {'error': 'Event not found'}
-                }
+                examples={'application/json': _ERROR_EXAMPLES['NOT_FOUND_ERROR']}
             )
         },
         tags=['Comment']
     )
     @action(detail=False, methods=['get'], url_path='eventId/(?P<eventId>\d+)')
     def get_by_event_id(self, request, eventId):
+        """Retrieve comments associated with a specific event."""
         event = self.event_service.get_event_by_id_or_slug(eventId)
         if not event:
-            return Response(data="Event not found", status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                data={'detail': 'Event not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         comments = self.comment_service.get_by_event(event)
-        comments = CommentSerializer(comments, many=True).data
-        return Response(data=comments, status=status.HTTP_200_OK)
+        return Response(
+            CommentSerializer(comments, many=True).data,
+            status=status.HTTP_200_OK
+        )
 
     @swagger_auto_schema(
-        operation_description="Get replies to a specific comment.",
+        operation_description="Get comment replies",
         responses={
             200: openapi.Response(
-                description="Replies successfully fetched",
-                examples={
-                    'application/json': [
-                        {
-                            'id': 2,
-                            'text': 'Reply to the comment',
-                            'author': 'user2',
-                            'created_at': '2025-01-24T14:40:00Z'
-                        }
-                    ]
-                }
+                description="Replies retrieved successfully",
+                examples={'application/json': _COMMENT_LIST_EXAMPLE}
             )
         },
         tags=['Comment']
     )
     @action(detail=True, methods=['get'])
     def replies(self, request, pk):
+        """Retrieve replies to a specific comment."""
         comment = self.get_object()
         replies = self.comment_service.get_replies(comment)
-        replies = self.get_serializer(replies, many=True)
-        return Response(replies.data)
+        return Response(
+            self.get_serializer(replies, many=True).data,
+            status=status.HTTP_200_OK
+        )

@@ -25,9 +25,13 @@ class TokenSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    followers_count = serializers.SerializerMethodField(help_text="The number of followers the user has.")
-    following_count = serializers.SerializerMethodField(help_text="The number of users the user is following.")
-    
+    followers_count = serializers.SerializerMethodField(
+        help_text="The total number of followers the user has."
+    )
+    following_count = serializers.SerializerMethodField(
+        help_text="The total number of users the user is following."
+    )
+
     class Meta:
         model = User
         fields = [
@@ -37,12 +41,26 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['date_joined']
         extra_kwargs = {
-            'password': {'write_only': True, 'help_text': 'The password for the user. Write-only.'},
-            'email': {'required': True, 'help_text': 'The email address of the user. This field is required.'},
-            'profile_picture': {'help_text': 'URL of the user\'s profile picture.'},
-            'bio': {'help_text': 'A brief biography about the user.'},
-            'location': {'help_text': 'The user\'s current location.'},
-            'date_of_birth': {'help_text': 'The user\'s date of birth in YYYY-MM-DD format.'},
+            'password': {
+                'write_only': True,
+                'help_text': 'The user password. This field is write-only.'
+            },
+            'email': {
+                'required': True,
+                'help_text': 'The user email address. Must be unique and is required.'
+            },
+            'profile_picture': {
+                'help_text': 'URL of the user’s profile picture. Optional.'
+            },
+            'bio': {
+                'help_text': 'Short biography or description of the user. Optional.'
+            },
+            'location': {
+                'help_text': 'Current location of the user. Optional.'
+            },
+            'date_of_birth': {
+                'help_text': 'User’s date of birth in YYYY-MM-DD format. Optional.'
+            },
         }
 
     @swagger_serializer_method(serializer_or_field=serializers.IntegerField)
@@ -55,11 +73,30 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    profile_picture = serializers.ImageField(required=False)
-    date_of_birth = serializers.DateField(required=False, allow_null=True)
-    phone_number = serializers.CharField(max_length=15, required=False)
-    location = serializers.CharField(max_length=100, required=False)
+    password = serializers.CharField(
+        write_only=True,
+        style={'input_type': 'password'},
+        help_text="The user password. This field is write-only and required."
+    )
+    profile_picture = serializers.ImageField(
+        required=False,
+        help_text="Optional profile picture of the user. Must be an image file."
+    )
+    date_of_birth = serializers.DateField(
+        required=False,
+        allow_null=True,
+        help_text="Optional date of birth in YYYY-MM-DD format."
+    )
+    phone_number = serializers.CharField(
+        max_length=15,
+        required=False,
+        help_text="Optional phone number of the user. Maximum length is 15 characters."
+    )
+    location = serializers.CharField(
+        max_length=100,
+        required=False,
+        help_text="Optional location of the user. Maximum length is 100 characters."
+    )
 
     class Meta:
         model = User
@@ -68,8 +105,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'date_of_birth', 'phone_number', 'location', 'interests'
         ]
         extra_kwargs = {
-            'password': {'write_only': True},
-            'email': {'validators': [EmailValidator()]},
+            'password': {
+                'write_only': True,
+                'help_text': 'The user password. This field is write-only.'
+            },
+            'email': {
+                'validators': [EmailValidator()],
+                'help_text': 'A valid email address. Must be unique.'
+            },
         }
         
 
@@ -181,19 +224,54 @@ class CommentCreateSerializer(serializers.ModelSerializer):
     
 class RegistrationSerializer(serializers.ModelSerializer):
     attendee = UserSerializer(read_only=True)
-    
+    event = serializers.PrimaryKeyRelatedField(
+        queryset=Event.objects.all(),
+        help_text="The ID of the event the registration belongs to."
+    )
+    status = serializers.ChoiceField(
+        choices=Registration.STATUS_CHOICES,
+        help_text="The status of the registration (e.g., 'confirmed', 'cancelled')."
+    )
+    notes = serializers.CharField(
+        required=False,
+        help_text="Optional notes provided by the attendee."
+    )
+
     class Meta:
         model = Registration
-        fields = ['id', 'event', 'attendee', 'status', 'registration_date', 
-                 'cancelled_date', 'notes']
-        read_only_fields = ['registration_date', 'cancelled_date']
+        fields = [
+            'id', 'event', 'attendee', 'status', 
+            'registration_date', 'cancelled_date', 'notes'
+        ]
+        read_only_fields = ['id', 'registration_date', 'cancelled_date', 'attendee']
+        extra_kwargs = {
+            'event': {'help_text': 'The event ID associated with this registration.'},
+            'notes': {'help_text': 'Additional notes or comments about the registration.'},
+        }
 
 
 class RegistrationCreateSerializer(serializers.ModelSerializer):
+    event = serializers.PrimaryKeyRelatedField(
+        queryset=Event.objects.all(),
+        help_text="The ID of the event for which the registration is being created."
+    )
+    status = serializers.ChoiceField(
+        choices=Registration.STATUS_CHOICES,
+        help_text="The status of the registration (e.g., 'pending', 'confirmed')."
+    )
+    notes = serializers.CharField(
+        required=False,
+        help_text="Optional notes provided by the attendee during registration."
+    )
+
     class Meta:
         model = Registration
         fields = ['event', 'status', 'notes']
         read_only_fields = ['id', 'registration_date', 'cancelled_date']
+        extra_kwargs = {
+            'event': {'help_text': 'The event ID associated with the registration.'},
+            'notes': {'help_text': 'Additional information or comments about the registration.'}
+        }
 
 
 class EventSerializer(serializers.ModelSerializer):

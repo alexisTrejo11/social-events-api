@@ -1,154 +1,267 @@
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import viewsets, status, generics
+from drf_yasg import openapi
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from ..models import UserFollow, UserPreferences
 from ..serializers import (
     UserSerializer, 
     UserPreferencesSerializer,
     UserCreateSerializer,
 )
+from ..utils.swagger_examples import _USER_EXAMPLE , USER_ERROR_EXAMPLES as _ERROR_EXAMPLES
 
 User = get_user_model()
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    Viewset for viewing, creating, and managing user accounts.
-    Allows users to view their profile, follow other users, and update their information.
+    API endpoint for managing user accounts and social features
+    
+    Actions:
+    - create: Register new user (Public)
+    - retrieve: Get user details (Authenticated)
+    - follow: Follow/unfollow user (Authenticated)
+    - followers: List user followers (Public)
+    - following: List followed users (Public)
+    - me: Get/update current user profile (Authenticated)
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return UserCreateSerializer
-        return UserSerializer
+        """Select serializer based on action"""
+        return UserCreateSerializer if self.action == 'create' else UserSerializer
 
     def get_permissions(self):
+        """Dynamically assign permissions based on action"""
         if self.action == 'create':
             return [AllowAny()]
         return [IsAuthenticated()]
 
     @swagger_auto_schema(
-        operation_description="Create a new user account.",
+        operation_summary="Create user",
+        operation_description="Register a new user account",
         request_body=UserCreateSerializer,
-        responses={201: UserSerializer, 400: 'Bad Request'}
+        responses={
+            201: openapi.Response(
+                description="User created",
+                schema=UserSerializer,
+                examples={'application/json': _USER_EXAMPLE}
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={'application/json': _ERROR_EXAMPLES['VALIDATION_ERROR']}
+            )
+        },
+        tags=['Users']
     )
+    @transaction.atomic
     def create(self, request):
-        """
-        Create a new user and associated user preferences.
-        """
+        """Handle user registration with preferences creation"""
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            UserPreferences.objects.create(user=user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @swagger_auto_schema(
-        operation_description="Follow or unfollow a user.",
-        responses={200: 'User unfollowed', 201: 'User followed', 400: 'Error'}
-    )
-    @action(detail=True, methods=['post'])
-    def follow(self, request, pk=None):
-        """
-        Follow or unfollow a user.
-        """
-        user_to_follow = self.get_object()
-        if request.user == user_to_follow:
-            return Response(
-                {'error': 'You cannot follow yourself'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        follow, created = UserFollow.objects.get_or_create(
-            follower=request.user,
-            following=user_to_follow
-        )
-
-        if not created:
-            follow.delete()
-            return Response(
-                {'status': 'User unfollowed'},
-                status=status.HTTP_200_OK
-            )
-
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.save()
+        UserPreferences.objects.create(user=user)
+        
         return Response(
-            {'status': 'User followed'},
+            UserSerializer(user).data,
             status=status.HTTP_201_CREATED
         )
 
     @swagger_auto_schema(
-        operation_description="List followers of a user.",
-        responses={200: UserSerializer}
+        operation_summary="Follow user",
+        operation_description="Toggle follow status for a user",
+        responses={
+            200: openapi.Response(
+                description="Unfollow successful",
+                examples={'application/json': {'detail': 'Successfully unfollowed user'}}
+            ),
+            201: openapi.Response(
+                description="Follow successful",
+                examples={'application/json': {'detail': 'Successfully followed user'}}
+            ),
+            400: openapi.Response(
+                description="Self-follow attempt",
+                examples={'application/json': _ERROR_EXAMPLES['SELF_FOLLOW_ERROR']}
+            ),
+            404: openapi.Response(
+                description="User not found",
+                examples={'application/json': _ERROR_EXAMPLES['NOT_FOUND_ERROR']}
+            )
+        },
+        tags=['Social']
+    )
+    @action(detail=True, methods=['post'])
+    def follow(self, request, pk=None):
+        """Handle follow/unfollow logic"""
+        user_to_follow = self.get_object()
+        
+        if request.user == user_to_follow:
+            return Response(
+                _ERROR_EXAMPLES['SELF_FOLLOW_ERROR'],
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            follow, created = UserFollow.objects.get_or_create(
+                follower=request.user,
+                following=user_to_follow
+            )
+
+            if not created:
+                follow.delete()
+                return Response(
+                    {'detail': 'Successfully unfollowed user'},
+                    status=status.HTTP_200_OK
+                )
+
+        return Response(
+            {'detail': 'Successfully followed user'},
+            status=status.HTTP_201_CREATED
+        )
+
+    @swagger_auto_schema(
+        operation_summary="List followers",
+        operation_description="Get paginated list of user's followers",
+        responses={
+            200: openapi.Response(
+                description="Followers list",
+                schema=UserSerializer(many=True),
+                examples={'application/json': [_USER_EXAMPLE]}
+            )
+        },
+        tags=['Social']
     )
     @action(detail=True, methods=['get'])
     def followers(self, request, pk=None):
-        """
-        Get a list of followers for a specific user.
-        """
+        """Retrieve paginated list of followers"""
         user = self.get_object()
         followers = user.followers.all()
-        serializer = UserSerializer(followers, many=True)
+        page = self.paginate_queryset(followers)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = self.get_serializer(followers, many=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        operation_description="List users the current user is following.",
-        responses={200: UserSerializer}
+        operation_summary="List following",
+        operation_description="Get paginated list of users being followed",
+        responses={
+            200: openapi.Response(
+                description="Following list",
+                schema=UserSerializer(many=True),
+                examples={'application/json': [_USER_EXAMPLE]}
+            )
+        },
+        tags=['Social']
     )
     @action(detail=True, methods=['get'])
     def following(self, request, pk=None):
-        """
-        Get a list of users that the current user is following.
-        """
+        """Retrieve paginated list of followed users"""
         user = self.get_object()
         following = user.following.all()
-        serializer = UserSerializer(following, many=True)
+        page = self.paginate_queryset(following)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = self.get_serializer(following, many=True)
         return Response(serializer.data)
 
     @swagger_auto_schema(
-        operation_description="Get or update the current user's profile.",
-        responses={200: UserSerializer, 400: 'Bad Request'},
-        methods=['get'] 
+        operation_summary="Current user profile",
+        operation_description="Retrieve or update authenticated user's profile",
+        methods=['get', 'patch'],
+        responses={
+            200: openapi.Response(
+                description="User profile",
+                schema=UserSerializer,
+                examples={'application/json': _USER_EXAMPLE}
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={'application/json': _ERROR_EXAMPLES['VALIDATION_ERROR']}
+            )
+        },
+        tags=['Users']
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get', 'patch'])
     def me(self, request):
-        """
-        Get or update the authenticated user's profile.
-        """
+        """Handle current user profile operations"""
         if request.method == 'GET':
-            serializer = self.get_serializer(request.user)
-            return Response(serializer.data)
+            return Response(
+                self.get_serializer(request.user).data
+            )
 
         serializer = self.get_serializer(
             request.user, 
             data=request.data, 
-            partial=request.method == 'PATCH'
+            partial=True
         )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
-class UserPreferencesView(generics.RetrieveUpdateAPIView):
+class UserPreferencesViewSet(mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin,
+                            viewsets.GenericViewSet):
     """
-    View for retrieving or updating the current user's preferences.
+    API endpoint for managing user preferences
+    
+    Actions:
+    - retrieve: Get user preferences
+    - update: Update user preferences (partial allowed)
     """
     serializer_class = UserPreferencesSerializer
     permission_classes = [IsAuthenticated]
 
+    _PREFERENCES_EXAMPLE = {
+        'theme': 'dark',
+        'notifications_enabled': True,
+        'language': 'en'
+    }
+
     @swagger_auto_schema(
-        operation_description="Retrieve or update user preferences.",
-        responses={200: UserPreferencesSerializer, 400: 'Bad Request'}
+        operation_summary="Get preferences",
+        operation_description="Retrieve current user's preferences",
+        responses={
+            200: openapi.Response(
+                description="User preferences",
+                schema=UserPreferencesSerializer,
+                examples={'application/json': _PREFERENCES_EXAMPLE}
+            )
+        },
+        tags=['Preferences']
     )
+    @swagger_auto_schema(
+        method='patch',
+        operation_summary="Update preferences",
+        operation_description="Update current user's preferences",
+        request_body=UserPreferencesSerializer,
+        responses={
+            200: openapi.Response(
+                description="Updated preferences",
+                schema=UserPreferencesSerializer,
+                examples={'application/json': _PREFERENCES_EXAMPLE}
+            ),
+            400: openapi.Response(
+                description="Validation error",
+                examples={'application/json': _ERROR_EXAMPLES['VALIDATION_ERROR']}
+            )
+        },
+        tags=['Preferences']
+    )
+    @action(detail=False, methods=['patch'])
     def get_object(self):
-        """
-        Get or create preferences for the current user.
-        """
-        preferences, created = UserPreferences.objects.get_or_create(
-            user=self.request.user
-        )
+        """Get or create preferences for current user"""
+        preferences, _ = UserPreferences.objects.get_or_create(user=self.request.user)
         return preferences

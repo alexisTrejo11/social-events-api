@@ -16,7 +16,6 @@ class EventQueryViewSet(viewsets.ModelViewSet):
         event = self.event_service.get_event_by_id_or_slug(identifier)
         return event
 
-
     
     @action(detail=False, methods=['get'])
     def search(self, request):
