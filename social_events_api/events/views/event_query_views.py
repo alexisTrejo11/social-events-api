@@ -5,6 +5,7 @@ from django.utils.dateparse import parse_datetime
 from ..serializers import EventSerializer
 from ..models import Event
 from ..service.event_query_service import EventQueryService
+from ..utils.filter import EventFilterBuilder
 
 class EventQueryViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
@@ -36,12 +37,10 @@ class EventQueryViewSet(viewsets.ModelViewSet):
         - organizer: Organizer ID
         - order_by: Field to order by (e.g., start_date, -created_at)
         """
-
-        filters = self.__fetch_filters(request)
-       
+        filter_builder = EventFilterBuilder(request)
         events = self.event_service.search_events(
             search_query=request.query_params.get('q'),
-            filters=filters,
+            filters=filter_builder.get_filters(),
             user=request.user
         )
 
@@ -52,33 +51,3 @@ class EventQueryViewSet(viewsets.ModelViewSet):
 
         events = self.get_serializer(events, many=True).data
         return Response(data=events, status=status.HTTP_200_OK)
-    
-    
-    def __fetch_filters(self, request) -> dict:
-        # Extract search parameters
-        filters = {}
-        
-        # Parse date filters
-        if date_from := request.query_params.get('date_from'):
-            filters['date_from'] = parse_datetime(date_from)
-        if date_to := request.query_params.get('date_to'):
-            filters['date_to'] = parse_datetime(date_to)
-
-        # Parse numeric filters
-        if price_min := request.query_params.get('price_min'):
-            filters['price_min'] = float(price_min)
-        if price_max := request.query_params.get('price_max'):
-            filters['price_max'] = float(price_max)
-
-        # Parse boolean filters
-        if available_only := request.query_params.get('available_only'):
-            filters['available_only'] = available_only.lower() == 'true'
-        if favorites_only := request.query_params.get('favorites_only'):
-            filters['favorites_only'] = favorites_only.lower() == 'true'
-
-        # Other filters
-        for param in ['category', 'status', 'location', 'organizer', 'order_by']:
-            if value := request.query_params.get(param):
-                filters[param] = value
-
-        return filters
