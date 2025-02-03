@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
-from events.views.user_views import UserViewSet, UserPreferencesView
+from events.views.user_views import UserViewSet, UserPreferencesViewSet
 from events.views.auth_views import AuthView
 from events.views.category_views import CategoryViewSet
 from events.views.event_command_views import EventCommandViewSet

@@ -12,7 +12,7 @@ from ..serializers import (
     UserPreferencesSerializer,
     UserCreateSerializer,
 )
-from ..utils.swagger_examples import _USER_EXAMPLE , USER_ERROR_EXAMPLES as _ERROR_EXAMPLES
+from ..utils.swagger_examples import _USER_EXAMPLE, USER_ERROR_EXAMPLES as _ERROR_EXAMPLES
 
 User = get_user_model()
 
@@ -242,6 +242,12 @@ class UserPreferencesViewSet(mixins.RetrieveModelMixin,
         },
         tags=['Preferences']
     )
+    def retrieve(self, request, *args, **kwargs):
+        """Get user preferences"""
+        preferences = self.get_object()
+        serializer = self.get_serializer(preferences)
+        return Response(serializer.data)
+
     @swagger_auto_schema(
         method='patch',
         operation_summary="Update preferences",
@@ -261,6 +267,14 @@ class UserPreferencesViewSet(mixins.RetrieveModelMixin,
         tags=['Preferences']
     )
     @action(detail=False, methods=['patch'])
+    def update_preferences(self, request, *args, **kwargs):
+        """Update user preferences"""
+        preferences = self.get_object()
+        serializer = self.get_serializer(preferences, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
     def get_object(self):
         """Get or create preferences for current user"""
         preferences, _ = UserPreferences.objects.get_or_create(user=self.request.user)
