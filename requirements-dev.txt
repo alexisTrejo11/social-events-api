@@ -1,0 +1,9 @@
+# Development dependencies
+pytest
+pytest-django
+pytest-cov
+factory-boy
+django-debug-toolbar
+ipython
+black
+flake8
