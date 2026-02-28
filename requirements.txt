@@ -1,6 +1,0 @@
-django djangorestframework
-Pillow
-djangorestframework-simplejwt
-django-ratelimit
-django-ratelimit
-drf-yasg
