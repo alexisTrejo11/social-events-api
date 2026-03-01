@@ -1,0 +1,23 @@
+{% extends "emails/base.html" %}
+
+{% block title %}New Reply to Your Comment{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Someone Replied to Your Comment 💬</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p><strong>{{ replier_name }}</strong> replied to your comment on <strong>{{ event_title }}</strong>:</p>
+    
+    <div class="info-box">
+        <div class="info-box-content" style="font-style: italic; color: #2d3748;">
+            "{{ reply_preview }}"
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ comment_url }}" class="btn">View Conversation</a>
+    </p>
+</div>
+{% endblock %}

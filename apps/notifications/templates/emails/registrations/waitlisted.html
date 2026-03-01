@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Waitlisted: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">You're on the Waitlist 📋</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>The event you registered for is currently at full capacity, but don't worry! You've been added to the waitlist.</p>
+    
+    <div class="info-box" style="border-left-color: #4299e1;">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content" style="font-size: 16px;">
+            <strong>📅 When:</strong> {{ event_date }}<br>
+            <strong>📋 Status:</strong> Waitlisted
+        </div>
+    </div>
+    
+    <p>If a spot becomes available, we'll automatically confirm your registration and send you a notification.</p>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ event_url }}" class="btn">View Event Details</a>
+    </p>
+    
+    <p>Keep your fingers crossed! 🤞</p>
+</div>
+{% endblock %}

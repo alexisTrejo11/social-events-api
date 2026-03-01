@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Welcome to {{ site_name }}!{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Welcome, {{ user_name }}! 🎉</h1>
+
+<div class="content">
+    <p>We're thrilled to have you join our community of event enthusiasts!</p>
+    
+    <p>Social Events is your gateway to discovering amazing events, connecting with like-minded people, and creating unforgettable experiences.</p>
+    
+    <div class="info-box">
+        <div class="info-box-title">Get Started:</div>
+        <div class="info-box-content">
+            ✓ Explore upcoming events in your area<br>
+            ✓ Create and manage your own events<br>
+            ✓ Connect with other attendees<br>
+            ✓ Track your favorite events
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin: 30px 0;">
+        <a href="{{ site_url }}/events" class="btn">Discover Events</a>
+    </p>
+    
+    <p>If you have any questions, our support team is always here to help!</p>
+</div>
+{% endblock %}

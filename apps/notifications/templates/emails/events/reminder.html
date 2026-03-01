@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Reminder: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Event Reminder ⏰</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>This is a friendly reminder that your event is coming up soon!</p>
+    
+    <div class="info-box">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content" style="font-size: 16px;">
+            <strong>📅 When:</strong> {{ event_date }}
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ event_url }}" class="btn">View Event Details</a>
+    </p>
+    
+    <p>We're looking forward to seeing you there!</p>
+    
+    <p style="font-size: 14px; color: #718096; margin-top: 30px;">
+        💡 <strong>Pro tip:</strong> Add this event to your calendar so you don't forget!
+    </p>
+</div>
+{% endblock %}

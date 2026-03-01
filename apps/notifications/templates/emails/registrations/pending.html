@@ -1,0 +1,27 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Registration Pending: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Registration Received ⏳</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>Thank you for your interest! Your registration has been received and is pending approval from the event organizer.</p>
+    
+    <div class="info-box" style="border-left-color: #ed8936;">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content" style="font-size: 16px;">
+            <strong>📅 When:</strong> {{ event_date }}<br>
+            <strong>⏳ Status:</strong> Pending Approval
+        </div>
+    </div>
+    
+    <p>We'll notify you as soon as the organizer reviews your registration. This usually happens within 24-48 hours.</p>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ event_url }}" class="btn">View Event Details</a>
+    </p>
+</div>
+{% endblock %}
