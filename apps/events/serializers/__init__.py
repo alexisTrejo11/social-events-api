@@ -1,12 +1,6 @@
-"""
-Events serializers module.
+"""Events serializers package."""
 
-This module imports and re-exports serializers from the serializers package.
-This allows backward compatibility for imports like:
-    from apps.events.serializers import EventListSerializer
-"""
-
-from apps.events.serializers.event_serializers import (
+from .event_serializers import (
     EventListSerializer,
     EventDetailSerializer,
     EventCreateUpdateSerializer,
@@ -14,11 +8,8 @@ from apps.events.serializers.event_serializers import (
     EventCancelSerializer,
     RecurrenceRuleSerializer,
 )
-from apps.events.serializers.category_serializers import (
-    CategorySerializer,
-    TagSerializer,
-)
-from apps.events.serializers.role_serializers import (
+from .category_serializers import CategorySerializer, TagSerializer
+from .role_serializers import (
     EventRoleSerializer,
     EventRoleCreateSerializer,
     EventRoleUpdateSerializer,
