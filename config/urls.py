@@ -30,6 +30,7 @@ urlpatterns = [
     path("api/v1/", include("apps.locations.urls")),
     path("api/v1/", include("apps.events.urls")),
     path("api/v1/", include("apps.registrations.urls")),
+    path("api/v1/", include("apps.comments.urls")),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
