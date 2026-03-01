@@ -1,16 +1,10 @@
-"""
-Registrations serializers module.
+"""Registrations serializers package."""
 
-This module imports and re-exports serializers from the serializers package.
-This allows backward compatibility for imports like:
-    from apps.registrations.serializers import RegistrationSerializer
-"""
-
-from apps.registrations.serializers.ticket_serializers import (
+from .ticket_serializers import (
     TicketTierSerializer,
     TicketTierCreateUpdateSerializer,
 )
-from apps.registrations.serializers.registration_serializers import (
+from .registration_serializers import (
     RegistrationSerializer,
     RegistrationCreateSerializer,
     RegistrationUpdateSerializer,
