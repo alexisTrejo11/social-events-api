@@ -2,11 +2,32 @@
 
 from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
+from drf_spectacular.utils import extend_schema_view, extend_schema
 
 from apps.events.models import Category, Tag
 from apps.events.serializers import CategorySerializer, TagSerializer
+from common.serializers import ErrorResponseSerializer
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Events"],
+        summary="List all event categories",
+        description="Get a list of all available event categories. Categories are managed by administrators.",
+        responses={
+            200: CategorySerializer(many=True),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Events"],
+        summary="Get category details",
+        description="Retrieve detailed information for a specific event category by slug.",
+        responses={
+            200: CategorySerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+)
 class CategoryViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):
@@ -25,6 +46,25 @@ class CategoryViewSet(
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Events"],
+        summary="List all event tags",
+        description="Get a list of all available event tags. Tags are created automatically when events are created or managed via admin.",
+        responses={
+            200: TagSerializer(many=True),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Events"],
+        summary="Get tag details",
+        description="Retrieve detailed information for a specific event tag by slug.",
+        responses={
+            200: TagSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+)
 class TagViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
 ):

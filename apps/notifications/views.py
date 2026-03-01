@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from apps.notifications.models import Notification
 from apps.notifications.serializers import (
@@ -12,8 +13,36 @@ from apps.notifications.serializers import (
     NotificationListSerializer,
     NotificationMarkReadSerializer,
 )
+from common.serializers import (
+    ErrorResponseSerializer,
+    ValidationErrorSerializer,
+)
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="List all notifications for the authenticated user",
+    description="Returns a list of all notifications for the current user. "
+    "Can filter by read status and notification type.",
+    parameters=[
+        OpenApiParameter(
+            name="is_read",
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            description="Filter by read status (true/false)",
+        ),
+        OpenApiParameter(
+            name="notification_type",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="Filter by notification type",
+        ),
+    ],
+    responses={
+        200: NotificationListSerializer(many=True),
+        401: ErrorResponseSerializer,
+    },
+)
 class NotificationListView(generics.ListAPIView):
     """
     List all notifications for the authenticated user.
@@ -49,6 +78,16 @@ class NotificationListView(generics.ListAPIView):
         return queryset
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="Get notification details",
+    description="Returns detailed information for a specific notification.",
+    responses={
+        200: NotificationSerializer,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 class NotificationDetailView(generics.RetrieveAPIView):
     """
     Get notification details.
@@ -66,6 +105,16 @@ class NotificationDetailView(generics.RetrieveAPIView):
         )
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="Mark a notification as read",
+    description="Mark a specific notification as read.",
+    responses={
+        200: NotificationSerializer,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mark_notification_as_read(request, notification_id):
@@ -86,6 +135,18 @@ def mark_notification_as_read(request, notification_id):
     )
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="Mark all notifications as read",
+    description="Mark all notifications or a specific set of notifications as read. "
+    "If notification_ids is provided, only those notifications are marked as read.",
+    request=NotificationMarkReadSerializer,
+    responses={
+        200: NotificationSerializer(many=True),
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mark_all_as_read(request):
@@ -120,6 +181,16 @@ def mark_all_as_read(request):
     )
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="Delete a notification",
+    description="Delete a specific notification by its ID.",
+    responses={
+        204: OpenApiTypes.NONE,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def delete_notification(request, notification_id):
@@ -140,6 +211,15 @@ def delete_notification(request, notification_id):
     )
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="Delete all read notifications",
+    description="Delete all notifications that have been marked as read for the authenticated user.",
+    responses={
+        200: OpenApiTypes.OBJECT,
+        401: ErrorResponseSerializer,
+    },
+)
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def delete_all_read_notifications(request):
@@ -158,6 +238,15 @@ def delete_all_read_notifications(request):
     )
 
 
+@extend_schema(
+    tags=["Notifications"],
+    summary="Get notification statistics",
+    description="Get statistics about the user's notifications, including total count, unread count, read count, and counts by notification type.",
+    responses={
+        200: OpenApiTypes.OBJECT,
+        401: ErrorResponseSerializer,
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def notification_stats(request):

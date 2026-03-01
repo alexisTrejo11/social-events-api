@@ -4,6 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema_view, extend_schema
 
 from apps.registrations.models import TicketTier
 from apps.registrations.serializers import (
@@ -12,8 +13,86 @@ from apps.registrations.serializers import (
 )
 from apps.registrations.permissions import CanManageTicketTiers
 from apps.events.models import Event
+from common.serializers import (
+    ErrorResponseSerializer,
+    ValidationErrorSerializer,
+)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Ticket Tiers"],
+        summary="List ticket tiers for an event",
+        description="Returns a list of all ticket tiers available for a specific event. "
+        "Includes pricing, capacity, and availability information.",
+        responses={
+            200: TicketTierSerializer(many=True),
+            404: ErrorResponseSerializer,
+        },
+    ),
+    create=extend_schema(
+        tags=["Ticket Tiers"],
+        summary="Create a ticket tier",
+        description="Create a new ticket tier for an event. "
+        "Only accessible by event organizers. Allows setting name, price, capacity, and sales period.",
+        request=TicketTierCreateUpdateSerializer,
+        responses={
+            201: TicketTierSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Ticket Tiers"],
+        summary="Get ticket tier details",
+        description="Returns detailed information for a specific ticket tier, "
+        "including current availability and number of tickets sold.",
+        responses={
+            200: TicketTierSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    update=extend_schema(
+        tags=["Ticket Tiers"],
+        summary="Update a ticket tier (full update)",
+        description="Update all fields of a ticket tier. Only accessible by event organizers.",
+        request=TicketTierCreateUpdateSerializer,
+        responses={
+            200: TicketTierSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Ticket Tiers"],
+        summary="Update a ticket tier (partial update)",
+        description="Update specific fields of a ticket tier. Only accessible by event organizers.",
+        request=TicketTierCreateUpdateSerializer,
+        responses={
+            200: TicketTierSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    destroy=extend_schema(
+        tags=["Ticket Tiers"],
+        summary="Delete a ticket tier",
+        description="Delete a ticket tier from an event. "
+        "Only accessible by event organizers. Cannot delete tiers with existing registrations.",
+        responses={
+            204: None,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+)
 class TicketTierViewSet(viewsets.ModelViewSet):
     """
     ViewSet for ticket tier management.

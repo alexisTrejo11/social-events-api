@@ -6,6 +6,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.utils import timezone
 from django.db.models import Q, Prefetch
+from drf_spectacular.utils import (
+    extend_schema_view,
+    extend_schema,
+    OpenApiParameter,
+    OpenApiTypes,
+)
 
 from apps.events.models import Event, EventRole
 from apps.events.serializers import (
@@ -26,8 +32,109 @@ from apps.events.permissions import (
 )
 from apps.users.permissions import IsVerifiedUser
 from apps.events.filters import EventFilter
+from common.serializers import (
+    ErrorResponseSerializer,
+    MessageResponseSerializer,
+    ValidationErrorSerializer,
+)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Events"],
+        summary="List all events",
+        description="Returns a paginated list of published events. Authenticated users also see their own draft events and events they host. "
+        "Supports filtering by category, location, date range, and more.",
+        responses={
+            200: EventListSerializer(many=True),
+        },
+        parameters=[
+            OpenApiParameter(
+                name="category",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter by category slug",
+            ),
+            OpenApiParameter(
+                name="location",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Filter by location ID",
+            ),
+            OpenApiParameter(
+                name="start_date_after",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter events starting after this date",
+            ),
+            OpenApiParameter(
+                name="start_date_before",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Filter events starting before this date",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary="Get event details",
+        description="Returns detailed information for a specific event. Only published public events or events you organize/host are accessible.",
+        tags=["Events"],
+        responses={
+            200: EventDetailSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    create=extend_schema(
+        summary="Create a new event",
+        description="Create a new event. Requires verified user account. Event is created in draft status by default.",
+        tags=["Events"],
+        request=EventCreateUpdateSerializer,
+        responses={
+            201: EventDetailSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+        },
+    ),
+    update=extend_schema(
+        summary="Update an event",
+        description="Fully update an event. Only accessible to event organizer and hosts.",
+        tags=["Events"],
+        request=EventCreateUpdateSerializer,
+        responses={
+            200: EventDetailSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    partial_update=extend_schema(
+        summary="Partially update an event",
+        description="Partially update an event with provided fields. Only accessible to event organizer and hosts.",
+        tags=["Events"],
+        request=EventCreateUpdateSerializer,
+        responses={
+            200: EventDetailSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+    destroy=extend_schema(
+        summary="Delete an event",
+        description="Soft delete an event. Only accessible to the event organizer. The event is marked as deleted but not removed from database.",
+        tags=["Events"],
+        responses={
+            204: None,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    ),
+)
 class EventViewSet(viewsets.ModelViewSet):
     """
     ViewSet for event CRUD and management.
@@ -121,6 +228,19 @@ class EventViewSet(viewsets.ModelViewSet):
         """Soft delete instead of hard delete."""
         instance.soft_delete()
 
+    @extend_schema(
+        summary="Publish a draft event",
+        description="Publish a draft event to make it visible to the public. Only accessible to event organizer.",
+        tags=["Events"],
+        request=EventPublishSerializer,
+        responses={
+            200: EventDetailSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["post"], url_path="publish")
     def publish(self, request, slug=None):
         """Publish a draft event."""
@@ -138,6 +258,19 @@ class EventViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Cancel an event",
+        description="Cancel a published event. Optionally provide a cancellation reason. Only accessible to event organizer.",
+        tags=["Events"],
+        request=EventCancelSerializer,
+        responses={
+            200: EventDetailSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, slug=None):
         """Cancel an event."""
@@ -159,40 +292,78 @@ class EventViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Favorite an event",
+        description="Add an event to your favorites list.",
+        tags=["Events"],
+        responses={
+            200: MessageResponseSerializer,
+            400: ErrorResponseSerializer,
+            401: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["post"], url_path="favorite")
     def favorite(self, request, slug=None):
         """Add event to user's favorites."""
         event = self.get_object()
 
         if event.favorites.filter(id=request.user.id).exists():
+            error_data = {"detail": "Event is already in your favorites."}
             return Response(
-                {"detail": "Event is already in your favorites."},
+                ErrorResponseSerializer(error_data).data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         event.favorites.add(request.user)
 
         return Response(
-            {"detail": "Event added to favorites."}, status=status.HTTP_200_OK
+            MessageResponseSerializer({"message": "Event added to favorites."}).data,
+            status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Unfavorite an event",
+        description="Remove an event from your favorites list.",
+        tags=["Events"],
+        responses={
+            200: MessageResponseSerializer,
+            400: ErrorResponseSerializer,
+            401: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["delete"], url_path="favorite")
     def unfavorite(self, request, slug=None):
         """Remove event from user's favorites."""
         event = self.get_object()
 
         if not event.favorites.filter(id=request.user.id).exists():
+            error_data = {"detail": "Event is not in your favorites."}
             return Response(
-                {"detail": "Event is not in your favorites."},
+                ErrorResponseSerializer(error_data).data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         event.favorites.remove(request.user)
 
         return Response(
-            {"detail": "Event removed from favorites."}, status=status.HTTP_200_OK
+            MessageResponseSerializer(
+                {"message": "Event removed from favorites."}
+            ).data,
+            status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="List event staff roles",
+        description="Get a list of all staff role assignments for this event (hosts, speakers, etc.).",
+        tags=["Events"],
+        responses={
+            200: EventRoleSerializer(many=True),
+            401: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["get"], url_path="roles")
     def list_roles(self, request, slug=None):
         """List all staff roles for this event."""
@@ -201,6 +372,19 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer = EventRoleSerializer(roles, many=True, context={"request": request})
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Assign a staff role",
+        description="Assign a new staff role to a user for this event (e.g., host, speaker, volunteer).",
+        tags=["Events"],
+        request=EventRoleCreateSerializer,
+        responses={
+            201: EventRoleSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["post"], url_path="roles")
     def assign_role(self, request, slug=None):
         """Assign a new role to a user for this event."""
@@ -217,6 +401,19 @@ class EventViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        summary="Update a staff role",
+        description="Update the bio or details of an existing staff role assignment.",
+        tags=["Events"],
+        request=EventRoleUpdateSerializer,
+        responses={
+            200: EventRoleSerializer,
+            400: ValidationErrorSerializer,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(
         detail=True,
         methods=["patch"],
@@ -229,8 +426,10 @@ class EventViewSet(viewsets.ModelViewSet):
         try:
             role = event.roles.get(id=role_id)
         except EventRole.DoesNotExist:
+            error_data = {"detail": "Role not found."}
             return Response(
-                {"detail": "Role not found."}, status=status.HTTP_404_NOT_FOUND
+                ErrorResponseSerializer(error_data).data,
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         serializer = EventRoleUpdateSerializer(
@@ -244,6 +443,17 @@ class EventViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Remove a staff role",
+        description="Remove a staff role assignment from this event.",
+        tags=["Events"],
+        responses={
+            204: None,
+            401: ErrorResponseSerializer,
+            403: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(
         detail=True,
         methods=["delete"],
@@ -256,16 +466,27 @@ class EventViewSet(viewsets.ModelViewSet):
         try:
             role = event.roles.get(id=role_id)
         except EventRole.DoesNotExist:
+            error_data = {"detail": "Role not found."}
             return Response(
-                {"detail": "Role not found."}, status=status.HTTP_404_NOT_FOUND
+                ErrorResponseSerializer(error_data).data,
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         role.delete()
 
-        return Response(
-            {"detail": "Role removed successfully."}, status=status.HTTP_204_NO_CONTENT
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(
+        summary="List recurring event occurrences",
+        description="Get a list of all occurrences for a recurring event. Returns an error if the event is not recurring.",
+        tags=["Events"],
+        responses={
+            200: EventListSerializer(many=True),
+            400: ErrorResponseSerializer,
+            401: ErrorResponseSerializer,
+            404: ErrorResponseSerializer,
+        },
+    )
     @action(detail=True, methods=["get"], url_path="occurrences")
     def occurrences(self, request, slug=None):
         """
@@ -277,8 +498,9 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
 
         if not event.recurrence:
+            error_data = {"detail": "This event is not recurring."}
             return Response(
-                {"detail": "This event is not recurring."},
+                ErrorResponseSerializer(error_data).data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

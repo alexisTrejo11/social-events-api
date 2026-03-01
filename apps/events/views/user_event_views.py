@@ -2,11 +2,22 @@
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
 
 from apps.events.models import Event
 from apps.events.serializers import EventListSerializer
+from common.serializers import ErrorResponseSerializer
 
 
+@extend_schema(
+    tags=["Events"],
+    summary="List favorite events",
+    description="Get a list of all events favorited by the authenticated user, ordered by start date.",
+    responses={
+        200: EventListSerializer(many=True),
+        401: ErrorResponseSerializer,
+    },
+)
 class UserFavoriteEventsView(generics.ListAPIView):
     """
     List all events favorited by the authenticated user.

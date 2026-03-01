@@ -1,6 +1,7 @@
 import logging
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
 from apps.users.models import UserFollow, UserPreferences
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for user profile (own profile)"""
+    """Serializer for authenticated user's own profile with follower counts."""
 
     full_name = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
@@ -36,7 +37,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "email", "email_verified", "created_at", "updated_at"]
 
+    @extend_schema_field(serializers.CharField())
     def get_full_name(self, obj):
+        """Get user's full name."""
         return obj.get_full_name()
 
     def get_follower_count(self, obj):
@@ -47,7 +50,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating user profile"""
+    """Serializer for updating user profile information."""
 
     class Meta:
         model = User
@@ -74,7 +77,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
 
 class PublicUserProfileSerializer(serializers.ModelSerializer):
-    """Serializer for public user profile"""
+    """Serializer for viewing public user profiles with follower information."""
 
     full_name = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
@@ -98,17 +101,24 @@ class PublicUserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(serializers.CharField())
     def get_full_name(self, obj):
+        """Get user's full name."""
         return obj.get_full_name()
 
+    @extend_schema_field(serializers.IntegerField())
     def get_follower_count(self, obj):
+        """Get total number of followers."""
         return obj.followers.count()
 
+    @extend_schema_field(serializers.IntegerField())
     def get_following_count(self, obj):
+        """Get total number of users being followed."""
         return obj.following.count()
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_following(self, obj):
-        """Check if current user follows this user"""
+        """Check if the current authenticated user follows this user."""
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             return UserFollow.objects.filter(

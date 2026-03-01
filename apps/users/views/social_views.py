@@ -5,16 +5,30 @@ from django.db.models import Q
 from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from drf_spectacular.utils import extend_schema
 from apps.users.models import UserFollow
 from apps.users.serializers import (
     UserFollowSerializer,
     UserFollowerSerializer,
+)
+from common.serializers import (
+    ErrorResponseSerializer,
+    MessageResponseSerializer,
 )
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="List user's followers",
+    description="Get a list of all users following the specified user.",
+    responses={
+        200: UserFollowerSerializer(many=True),
+        404: ErrorResponseSerializer,
+    },
+)
 class UserFollowersView(generics.ListAPIView):
     """
     GET /users/{username}/followers/
@@ -32,6 +46,15 @@ class UserFollowersView(generics.ListAPIView):
         return UserFollow.objects.filter(following=user).select_related("follower")
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="List users being followed",
+    description="Get a list of all users that the specified user is following.",
+    responses={
+        200: UserFollowSerializer(many=True),
+        404: ErrorResponseSerializer,
+    },
+)
 class UserFollowingView(generics.ListAPIView):
     """
     GET /users/{username}/following/
@@ -49,6 +72,18 @@ class UserFollowingView(generics.ListAPIView):
         return UserFollow.objects.filter(follower=user).select_related("following")
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="Follow a user",
+    description="Follow another user. Cannot follow yourself or follow the same user twice.",
+    responses={
+        200: MessageResponseSerializer,
+        201: MessageResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 class FollowUserView(generics.GenericAPIView):
     """
     POST /users/{username}/follow/
@@ -62,8 +97,9 @@ class FollowUserView(generics.GenericAPIView):
         user_to_follow = get_object_or_404(User, username=username, is_active=True)
 
         if user_to_follow == request.user:
+            error_data = {"error": "You cannot follow yourself"}
             return Response(
-                {"error": "You cannot follow yourself"},
+                ErrorResponseSerializer(error_data).data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -85,16 +121,31 @@ class FollowUserView(generics.GenericAPIView):
             # )
 
             return Response(
-                {"message": f"You are now following {user_to_follow.username}"},
+                MessageResponseSerializer(
+                    {"message": f"You are now following {user_to_follow.username}"}
+                ).data,
                 status=status.HTTP_201_CREATED,
             )
         else:
             return Response(
-                {"message": f"You are already following {user_to_follow.username}"},
+                MessageResponseSerializer(
+                    {"message": f"You are already following {user_to_follow.username}"}
+                ).data,
                 status=status.HTTP_200_OK,
             )
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="Unfollow a user",
+    description="Stop following a user. Returns an error if not currently following the user.",
+    responses={
+        200: MessageResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 class UnfollowUserView(generics.GenericAPIView):
     """
     DELETE /users/{username}/follow/
@@ -116,16 +167,28 @@ class UnfollowUserView(generics.GenericAPIView):
             logger.info(f"{request.user.email} unfollowed {user_to_unfollow.username}")
 
             return Response(
-                {"message": f"You have unfollowed {user_to_unfollow.username}"},
+                MessageResponseSerializer(
+                    {"message": f"You have unfollowed {user_to_unfollow.username}"}
+                ).data,
                 status=status.HTTP_200_OK,
             )
         except UserFollow.DoesNotExist:
+            error_data = {"error": f"You are not following {user_to_unfollow.username}"}
             return Response(
-                {"error": f"You are not following {user_to_unfollow.username}"},
+                ErrorResponseSerializer(error_data).data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="Get personalized event feed",
+    description="Get a personalized feed of events from followed users and organizations the user belongs to. Limited to 50 most recent events.",
+    responses={
+        200: None,  # Custom response structure
+        401: ErrorResponseSerializer,
+    },
+)
 class UserFeedView(generics.GenericAPIView):
     """
     GET /users/me/feed/

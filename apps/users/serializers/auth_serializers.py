@@ -3,6 +3,7 @@ import re
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import extend_schema_field
 
 
 User = get_user_model()
@@ -101,7 +102,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserLoginSerializer(serializers.Serializer):
-    """Serializer for user login"""
+    """Serializer for user login with JWT token generation."""
 
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
@@ -124,8 +125,9 @@ class UserLoginSerializer(serializers.Serializer):
         data["user"] = user
         return data
 
+    @extend_schema_field(serializers.DictField())
     def get_tokens(self, obj):
-        """Generate JWT tokens"""
+        """Generate JWT access and refresh tokens for the authenticated user."""
         user = obj.get("user")
         refresh = RefreshToken.for_user(user)
 
@@ -134,8 +136,9 @@ class UserLoginSerializer(serializers.Serializer):
             "access": str(refresh.access_token),
         }
 
+    @extend_schema_field(serializers.DictField())
     def get_user(self, obj):
-        """Return user data"""
+        """Return basic user information after successful authentication."""
         user = obj.get("user")
         return {
             "id": str(user.id),

@@ -1,6 +1,7 @@
 import logging
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
 
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.locations.models import Location
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrganizationMemberSerializer(serializers.ModelSerializer):
-    """Serializer for organization member details"""
+    """Serializer for organization member details with user information."""
 
     user_email = serializers.EmailField(source="user.email", read_only=True)
     user_name = serializers.SerializerMethodField()
@@ -38,12 +39,14 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
             "invited_by_email",
         ]
 
+    @extend_schema_field(serializers.CharField())
     def get_user_name(self, obj):
+        """Get the full name of the member."""
         return obj.user.get_full_name()
 
 
 class OrganizationListSerializer(serializers.ModelSerializer):
-    """Serializer for listing organizations"""
+    """Serializer for listing organizations with aggregate counts."""
 
     member_count = serializers.SerializerMethodField()
     event_count = serializers.SerializerMethodField()
@@ -67,18 +70,24 @@ class OrganizationListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "slug", "created_at", "updated_at"]
 
+    @extend_schema_field(serializers.IntegerField())
     def get_member_count(self, obj):
+        """Get total number of members in the organization."""
         return obj.memberships.count()
 
+    @extend_schema_field(serializers.IntegerField())
     def get_event_count(self, obj):
+        """Get total number of published events created by the organization."""
         return obj.events.filter(status="published").count()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_created_by_name(self, obj):
+        """Get the full name of the organization creator."""
         return obj.created_by.get_full_name() if obj.created_by else None
 
 
 class OrganizationDetailSerializer(serializers.ModelSerializer):
-    """Serializer for organization detail view"""
+    """Serializer for detailed organization information including location and stats."""
 
     location = serializers.PrimaryKeyRelatedField(
         queryset=Location.objects.all(), required=False, allow_null=True
@@ -112,7 +121,9 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "slug", "created_by", "created_at", "updated_at"]
 
+    @extend_schema_field(serializers.DictField(allow_null=True))
     def get_location_details(self, obj):
+        """Get basic location information for the organization."""
         if obj.location:
             return {
                 "id": obj.location.id,
@@ -122,18 +133,24 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
             }
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_created_by_name(self, obj):
+        """Get the full name of the organization creator."""
         return obj.created_by.get_full_name() if obj.created_by else None
 
+    @extend_schema_field(serializers.IntegerField())
     def get_member_count(self, obj):
+        """Get total number of members in the organization."""
         return obj.memberships.count()
 
+    @extend_schema_field(serializers.IntegerField())
     def get_event_count(self, obj):
+        """Get total number of published events created by the organization."""
         return obj.events.filter(status="published").count()
 
 
 class OrganizationCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for creating/updating organizations"""
+    """Serializer for creating and updating organizations with validation."""
 
     class Meta:
         model = Organization
@@ -172,7 +189,7 @@ class OrganizationCreateUpdateSerializer(serializers.ModelSerializer):
 
 
 class MemberInviteSerializer(serializers.Serializer):
-    """Serializer for inviting members by email"""
+    """Serializer for inviting members to an organization by email."""
 
     email = serializers.EmailField(required=True)
     role = serializers.ChoiceField(
@@ -191,7 +208,7 @@ class MemberInviteSerializer(serializers.Serializer):
 
 
 class MemberUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating member role/title"""
+    """Serializer for updating member role, title, and visibility."""
 
     class Meta:
         model = OrganizationMembership
