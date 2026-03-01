@@ -1,13 +1,7 @@
-"""
-Registrations views module.
+"""Registrations views package."""
 
-This module imports and re-exports views from the views package.
-This allows backward compatibility for imports like:
-    from apps.registrations.views import TicketTierViewSet
-"""
-
-from apps.registrations.views.ticket_views import TicketTierViewSet
-from apps.registrations.views.registration_views import (
+from .ticket_views import TicketTierViewSet
+from .registration_views import (
     EventRegistrationsListView,
     register_for_event,
     cancel_registration,
