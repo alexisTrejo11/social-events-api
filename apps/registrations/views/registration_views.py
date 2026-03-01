@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 
 from apps.registrations.models import Registration
 from apps.registrations.serializers import (
@@ -22,8 +23,25 @@ from apps.registrations.permissions import (
 )
 from apps.events.models import Event
 from apps.events.permissions import IsEventHost
+from common.serializers import (
+    ErrorResponseSerializer,
+    ValidationErrorSerializer,
+    MessageResponseSerializer,
+)
 
 
+@extend_schema(
+    tags=["Registrations"],
+    summary="List all registrations for an event",
+    description="Returns a list of all registrations for a specific event. "
+    "Only accessible by event organizers and hosts.",
+    responses={
+        200: RegistrationSerializer(many=True),
+        401: ErrorResponseSerializer,
+        403: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 class EventRegistrationsListView(generics.ListAPIView):
     """
     List all registrations for an event.
@@ -50,6 +68,20 @@ class EventRegistrationsListView(generics.ListAPIView):
         )
 
 
+@extend_schema(
+    tags=["Registrations"],
+    summary="Register for an event",
+    description="Register the authenticated user for a specific event. "
+    "Requires selecting a ticket tier if the event has ticketing enabled. "
+    "Handles waitlist, capacity checks, and registration requirements.",
+    request=RegistrationCreateSerializer,
+    responses={
+        201: RegistrationSerializer,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def register_for_event(request, event_slug):
@@ -76,6 +108,19 @@ def register_for_event(request, event_slug):
     )
 
 
+@extend_schema(
+    tags=["Registrations"],
+    summary="Cancel event registration",
+    description="Cancel the authenticated user's registration for a specific event. "
+    "Cannot cancel if the event has already started or if the registration is already cancelled.",
+    request=None,
+    responses={
+        204: MessageResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def cancel_registration(request, event_slug):
@@ -124,6 +169,16 @@ def cancel_registration(request, event_slug):
     )
 
 
+@extend_schema(
+    tags=["Registrations"],
+    summary="List user's registrations",
+    description="Returns a list of all event registrations for the authenticated user, "
+    "including past and upcoming events.",
+    responses={
+        200: RegistrationSerializer(many=True),
+        401: ErrorResponseSerializer,
+    },
+)
 class UserRegistrationsListView(generics.ListAPIView):
     """
     List all registrations for the authenticated user.
@@ -143,6 +198,20 @@ class UserRegistrationsListView(generics.ListAPIView):
         )
 
 
+@extend_schema(
+    tags=["Registrations"],
+    summary="Update registration status",
+    description="Update the status of a registration (approve, reject, or move to waitlist). "
+    "Only accessible by event organizers and hosts. Triggers status update notifications.",
+    request=RegistrationUpdateSerializer,
+    responses={
+        200: RegistrationSerializer,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+        403: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated, CanManageRegistrations])
 def update_registration_status(request, event_slug, registration_id):
@@ -181,6 +250,21 @@ def update_registration_status(request, event_slug, registration_id):
     )
 
 
+@extend_schema(
+    tags=["Registrations"],
+    summary="Check in attendee",
+    description="Mark an attendee as checked in at the event. "
+    "Accessible by event organizers, hosts, and volunteers with check-in permissions. "
+    "Records the check-in time and updates registration status to ATTENDED.",
+    request=RegistrationCheckInSerializer,
+    responses={
+        200: RegistrationSerializer,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+        403: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, CanCheckIn])
 def check_in_attendee(request, event_slug, registration_id):

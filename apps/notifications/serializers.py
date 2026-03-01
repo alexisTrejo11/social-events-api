@@ -1,12 +1,13 @@
 """Notification serializers."""
 
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from apps.notifications.models import Notification
 from apps.users.serializers import PublicUserProfileSerializer
 
 
 class NotificationSerializer(serializers.ModelSerializer):
-    """Serializer for viewing notifications."""
+    """Serializer for viewing detailed notification information."""
 
     actor = PublicUserProfileSerializer(read_only=True)
     event_title = serializers.CharField(source="event.title", read_only=True)
@@ -38,7 +39,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class NotificationListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for notification list."""
+    """Lightweight serializer for listing notifications."""
 
     actor_name = serializers.SerializerMethodField()
 
@@ -54,8 +55,9 @@ class NotificationListSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_actor_name(self, obj):
-        """Get actor's full name if available."""
+        """Get the full name of the user who triggered the notification."""
         if obj.actor:
             return obj.actor.get_full_name()
         return None

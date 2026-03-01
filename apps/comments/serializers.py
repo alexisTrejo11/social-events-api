@@ -2,13 +2,14 @@
 
 from rest_framework import serializers
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 
 from apps.comments.models import Comment
 from apps.users.serializers import PublicUserProfileSerializer
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    """Serializer for viewing comments."""
+    """Serializer for viewing individual comments with author details and engagement metrics."""
 
     author = PublicUserProfileSerializer(read_only=True)
     likes_count = serializers.SerializerMethodField()
@@ -33,30 +34,34 @@ class CommentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    @extend_schema_field(serializers.IntegerField())
     def get_likes_count(self, obj):
-        """Count total likes."""
+        """Count total likes on this comment."""
         return obj.likes.count()
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_liked(self, obj):
-        """Check if current user has liked this comment."""
+        """Check if the current authenticated user has liked this comment."""
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             return obj.likes.filter(id=request.user.id).exists()
         return False
 
+    @extend_schema_field(serializers.IntegerField())
     def get_replies_count(self, obj):
-        """Count direct replies (not deleted)."""
+        """Count direct replies to this comment (excluding deleted replies)."""
         return obj.replies.filter(is_deleted=False).count()
 
+    @extend_schema_field(serializers.CharField())
     def get_content_display(self, obj):
-        """Return content or placeholder if deleted."""
+        """Return comment content or placeholder text if the comment has been deleted."""
         if obj.is_deleted:
             return "[Comment deleted]"
         return obj.content
 
 
 class CommentListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for listing comments with threading."""
+    """Serializer for listing comments with nested replies (one level deep)."""
 
     author = PublicUserProfileSerializer(read_only=True)
     likes_count = serializers.SerializerMethodField()
@@ -81,32 +86,36 @@ class CommentListSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    @extend_schema_field(serializers.IntegerField())
     def get_likes_count(self, obj):
-        """Count total likes."""
+        """Count total likes on this comment."""
         return obj.likes.count()
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_liked(self, obj):
-        """Check if current user has liked this comment."""
+        """Check if the current authenticated user has liked this comment."""
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             return obj.likes.filter(id=request.user.id).exists()
         return False
 
+    @extend_schema_field(CommentSerializer(many=True))
     def get_replies(self, obj):
-        """Get nested replies (one level deep for now)."""
+        """Get nested replies to this comment (one level deep)."""
         # Only include non-deleted replies or show placeholder
         replies = obj.replies.all().order_by("created_at")
         return CommentSerializer(replies, many=True, context=self.context).data
 
+    @extend_schema_field(serializers.CharField())
     def get_content_display(self, obj):
-        """Return content or placeholder if deleted."""
+        """Return comment content or placeholder text if the comment has been deleted."""
         if obj.is_deleted:
             return "[Comment deleted]"
         return obj.content
 
 
 class CommentCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for creating and updating comments."""
+    """Serializer for creating and updating comments with validation for threading and content."""
 
     parent_id = serializers.IntegerField(required=False, allow_null=True)
 

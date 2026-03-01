@@ -4,6 +4,7 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import extend_schema
 from apps.users.serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
@@ -12,11 +13,27 @@ from apps.users.serializers import (
     PasswordResetConfirmSerializer,
     EmailVerificationSerializer,
 )
+from common.serializers import (
+    ErrorResponseSerializer,
+    MessageResponseSerializer,
+    ValidationErrorSerializer,
+)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Register a new user account",
+    description="Create a new user account with email verification. "
+    "Password must meet strength requirements (8+ chars, uppercase, lowercase, digit, special char).",
+    request=UserRegistrationSerializer,
+    responses={
+        201: UserRegistrationSerializer,
+        400: ValidationErrorSerializer,
+    },
+)
 class RegisterView(generics.CreateAPIView):
     """
     POST /auth/register/
@@ -49,6 +66,17 @@ class RegisterView(generics.CreateAPIView):
         )
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Login and receive JWT tokens",
+    description="Authenticate with email and password to receive JWT access and refresh tokens.",
+    request=UserLoginSerializer,
+    responses={
+        200: UserLoginSerializer,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class LoginView(generics.GenericAPIView):
     """
     POST /auth/login/
@@ -72,6 +100,16 @@ class LoginView(generics.GenericAPIView):
         )
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Logout and blacklist refresh token",
+    description="Invalidate the refresh token to log the user out.",
+    responses={
+        200: MessageResponseSerializer,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class LogoutView(generics.GenericAPIView):
     """
     POST /auth/logout/
@@ -85,8 +123,9 @@ class LogoutView(generics.GenericAPIView):
         try:
             refresh_token = request.data.get("refresh_token")
             if not refresh_token:
+                error_data = {"error": "Refresh token is required"}
                 return Response(
-                    {"error": "Refresh token is required"},
+                    ErrorResponseSerializer(error_data).data,
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -96,15 +135,29 @@ class LogoutView(generics.GenericAPIView):
             logger.info(f"User logged out: {request.user.email}")
 
             return Response(
-                {"message": "Logged out successfully"}, status=status.HTTP_200_OK
+                MessageResponseSerializer({"message": "Logged out successfully"}).data,
+                status=status.HTTP_200_OK,
             )
         except Exception as e:
             logger.error(f"Logout error: {str(e)}")
+            error_data = {"error": "Invalid token"}
             return Response(
-                {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
+                ErrorResponseSerializer(error_data).data,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Verify email with token",
+    description="Verify a user's email address using a token sent to their email.",
+    request=EmailVerificationSerializer,
+    responses={
+        200: MessageResponseSerializer,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class VerifyEmailView(generics.GenericAPIView):
     """
     POST /auth/verify-email/
@@ -132,6 +185,16 @@ class VerifyEmailView(generics.GenericAPIView):
         )
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Resend email verification",
+    description="Resend the email verification link to the user's email address.",
+    responses={
+        204: None,
+        400: ErrorResponseSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class ResendVerificationView(generics.GenericAPIView):
     """
     POST /auth/resend-verification/
@@ -156,11 +219,20 @@ class ResendVerificationView(generics.GenericAPIView):
         # from apps.users.tasks import send_verification_email
         # send_verification_email.delay(user.id)
 
-        return Response(
-            {"message": "Verification email sent"}, status=status.HTTP_200_OK
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Change password",
+    description="Change the password for the authenticated user. Requires current password and new password.",
+    request=PasswordChangeSerializer,
+    responses={
+        204: None,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class PasswordChangeView(generics.GenericAPIView):
     """
     POST /auth/password/change/
@@ -178,11 +250,20 @@ class PasswordChangeView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(
-            {"message": "Password changed successfully"}, status=status.HTTP_200_OK
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Request password reset",
+    description="Request a password reset email to be sent to the user's email address.",
+    request=PasswordResetRequestSerializer,
+    responses={
+        200: MessageResponseSerializer,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class PasswordResetRequestView(generics.GenericAPIView):
     """
     POST /auth/password/reset/
@@ -206,6 +287,17 @@ class PasswordResetRequestView(generics.GenericAPIView):
         )
 
 
+@extend_schema(
+    tags=["Authentication"],
+    summary="Confirm password reset",
+    description="Confirm the password reset using the token sent to the user's email.",
+    request=PasswordResetConfirmSerializer,
+    responses={
+        200: None,
+        400: ValidationErrorSerializer,
+        401: ErrorResponseSerializer,
+    },
+)
 class PasswordResetConfirmView(generics.GenericAPIView):
     """
     POST /auth/password/reset/confirm/
@@ -227,6 +319,4 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 
         logger.info("Password reset placeholder")
 
-        return Response(
-            {"message": "Password reset successfully"}, status=status.HTTP_200_OK
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

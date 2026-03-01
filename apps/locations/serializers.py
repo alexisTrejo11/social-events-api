@@ -1,15 +1,14 @@
 from typing import LiteralString
-
-
 import logging
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from apps.locations.models import Location
 
 logger = logging.getLogger(__name__)
 
 
 class LocationListSerializer(serializers.ModelSerializer):
-    """Serializer for listing locations"""
+    """Serializer for listing locations with computed full address."""
 
     full_address = serializers.SerializerMethodField()
 
@@ -26,8 +25,9 @@ class LocationListSerializer(serializers.ModelSerializer):
             "full_address",
         ]
 
+    @extend_schema_field(serializers.CharField())
     def get_full_address(self, obj):
-        """Get formatted full address"""
+        """Get formatted full address. For virtual locations, returns 'Virtual — {URL}', otherwise comma-separated address parts."""
         if obj.is_virtual:
             return f"Virtual — {obj.virtual_url}"
         parts = [obj.name, obj.city, obj.state_province, obj.country]
@@ -35,7 +35,7 @@ class LocationListSerializer(serializers.ModelSerializer):
 
 
 class LocationDetailSerializer(serializers.ModelSerializer):
-    """Serializer for location detail view"""
+    """Serializer for retrieving detailed location information including coordinates."""
 
     class Meta:
         model = Location
@@ -56,7 +56,7 @@ class LocationDetailSerializer(serializers.ModelSerializer):
 
 
 class LocationCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for creating/updating locations"""
+    """Serializer for creating and updating locations with validation for virtual vs physical locations."""
 
     class Meta:
         model = Location

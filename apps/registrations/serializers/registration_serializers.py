@@ -35,8 +35,17 @@ class RegistrationSerializer(serializers.ModelSerializer):
 class RegistrationCreateSerializer(serializers.Serializer):
     """Serializer for creating a registration."""
 
-    ticket_tier_id = serializers.IntegerField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, allow_blank=True, max_length=500)
+    ticket_tier_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="ID of the ticket tier to register for (if event has ticketing)",
+    )
+    notes = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Optional notes or special requests for the organizer",
+    )
 
     def validate_ticket_tier_id(self, value):
         """Validate that ticket tier exists and belongs to the event."""
