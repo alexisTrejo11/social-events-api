@@ -1,0 +1,19 @@
+{% extends "emails/base.html" %}
+
+{% block title %}{{ announcement_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">{{ announcement_title }} 📣</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    {{ announcement_content|safe }}
+    
+    {% if cta_url %}
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ cta_url }}" class="btn">{{ cta_text|default:"Learn More" }}</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

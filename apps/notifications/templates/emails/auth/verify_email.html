@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Verify Your Email{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Hi {{ user_name }},</h1>
+
+<div class="content">
+    <p>Thanks for signing up! Please verify your email address to complete your registration.</p>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ verification_url }}" class="btn">Verify Email Address</a>
+    </p>
+    
+    <div class="info-box">
+        <div class="info-box-title">⚡ Quick Tip</div>
+        <div class="info-box-content">
+            This link will expire in 24 hours for security reasons. If you didn't create an account, you can safely ignore this email.
+        </div>
+    </div>
+    
+    <hr class="divider">
+    
+    <p style="font-size: 14px; color: #718096;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="{{ verification_url }}" style="color: #667eea; word-break: break-all;">{{ verification_url }}</a>
+    </p>
+</div>
+{% endblock %}

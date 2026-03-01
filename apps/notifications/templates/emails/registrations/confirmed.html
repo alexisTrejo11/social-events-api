@@ -1,0 +1,31 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Registration Confirmed: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">You're All Set! ✅</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>Great news! Your registration has been confirmed.</p>
+    
+    <div class="info-box" style="border-left-color: #48bb78;">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content" style="font-size: 16px;">
+            <strong>📅 When:</strong> {{ event_date }}<br>
+            <strong>✓ Status:</strong> Confirmed
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ event_url }}" class="btn">View Event Details</a>
+    </p>
+    
+    <p>We'll send you a reminder closer to the event date. Looking forward to seeing you there!</p>
+    
+    <p style="font-size: 14px; color: #718096; margin-top: 30px;">
+        💡 <strong>Don't forget:</strong> Save this email for your records or add the event to your calendar.
+    </p>
+</div>
+{% endblock %}
