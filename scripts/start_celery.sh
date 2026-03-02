@@ -11,8 +11,8 @@ if [ -d "env" ]; then
     source env/bin/activate
 fi
 
-# Set Django settings module
-export DJANGO_SETTINGS_MODULE=config.settings.development
+# Set Django settings module (use env var or default to development)
+export DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
 
 # Start Celery worker with logging
 celery -A config worker \

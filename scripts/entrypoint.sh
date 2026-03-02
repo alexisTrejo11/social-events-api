@@ -20,6 +20,11 @@ if  [ -n "${REDIS_HOST}" ] && [ -n "${REDIS_PORT}" ]; then
   done
 fi
 
+# Collect static files
+echo "Collecting static files..."
+python manage.py collectstatic --noinput --clear
+echo "Static files collected."
+
 # Apply Django migrations
 echo "Applying Django migrations..."
 python manage.py migrate --noinput
@@ -42,26 +47,14 @@ else:
 " 2>/dev/null || echo "Note: Superuser creation skipped or failed"
 fi
 
-
-
-#  Start Celery worker and beat if Redis is configured
-if  [ -n "${REDIS_HOST}" ] && [ -n "${REDIS_PORT}" ]; then
+#  Start Celery worker and beat in background if Redis is configured
+if [ -n "${REDIS_HOST}" ] && [ -n "${REDIS_PORT}" ]; then
   echo "Starting Celery worker and beat..."
-  ./scripts/start_celery.sh
-  ./scripts/start_celery_beat.sh
+  celery -A config worker --loglevel=info --logfile=logs/celery_worker.log --detach
+  celery -A config beat --loglevel=info --logfile=logs/celery_beat.log --detach
+  echo "Celery started in background"
 fi
 
-# Execute the command passed to the entrypoint
 echo "Starting the application..."
-if [ "$ENVIRONMENT" = "production" ]; then
- gunicorn config.wsgi:application \
-   --bind 0.0.0.0:${PORT:-8000} \
-   --workers 3 \
-   --threads 2 \
-   --capture-output
-else
- python manage.py runserver 0.0.0.0:${PORT:-8000}
+python manage.py runserver 0.0.0.0:${PORT:-8000} --settings=config.settings.production
 fi
-
-
-

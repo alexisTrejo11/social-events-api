@@ -9,7 +9,10 @@ __pycache__/
 env/
 venv/
 ENV/
+
+# Local virtual environment
 .venv
+.env.docker
 
 # Django
 *.log
