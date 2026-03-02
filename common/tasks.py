@@ -15,12 +15,12 @@ def test_task(self):
     is_async = task_id is not None
 
     logger.info(
-        f"⏳ Starting test task... [Task ID: {task_id or 'SYNC'}] [Mode: {'ASYNC' if is_async else 'SYNC'}]"
+        f"Starting test task... [Task ID: {task_id or 'SYNC'}] [Mode: {'ASYNC' if is_async else 'SYNC'}]"
     )
 
     # Simulate work with progress updates
     for i in range(1, 6):
-        logger.info(f"🔄 Progress: {i}/5 (20% per step)")
+        logger.info(f"Progress: {i}/5 (20% per step)")
         time.sleep(1)
 
         # Update task state only if running async
@@ -30,7 +30,7 @@ def test_task(self):
                 meta={"current": i, "total": 5, "status": f"Step {i} of 5"},
             )
 
-    logger.info(f"✅ Test task completed! [Task ID: {task_id or 'SYNC'}]")
+    logger.info(f"Test task completed! [Task ID: {task_id or 'SYNC'}]")
     return {
         "status": "success",
         "message": "Task completed successfully",
@@ -46,16 +46,16 @@ def long_running_task(self, duration=10):
     task_id = self.request.id if hasattr(self.request, "id") else None
 
     try:
-        logger.info(f"🚀 Long task started: {duration}s [Task ID: {task_id or 'SYNC'}]")
+        logger.info(f"Long task started: {duration}s [Task ID: {task_id or 'SYNC'}]")
 
         # Simulate work
         time.sleep(duration)
 
-        logger.info(f"✅ Long task finished [Task ID: {task_id or 'SYNC'}]")
+        logger.info(f" Long task finished [Task ID: {task_id or 'SYNC'}]")
         return {"status": "completed", "duration": duration, "task_id": task_id}
 
     except Exception as exc:
-        logger.error(f"❌ Task error: {exc}")
+        logger.error(f"Task error: {exc}")
         # Retry only if running async (has valid task context)
         if task_id:
             raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))

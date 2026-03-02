@@ -3,10 +3,10 @@ Missing Tasks
 -- Testing
 -- CORS
 -- HTTPS
--- Dockerization
 -- Check email sending
 -- Deploy
 -- JSON Documentation
 -- Add Business Logic
 -- Cache?
 -- Files and Imgs
+-- Tasks status views dont work good

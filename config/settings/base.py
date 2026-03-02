@@ -31,6 +31,10 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://placeholder.com",
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -40,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     # Third-party apps
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
@@ -57,7 +62,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Static files for production
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -65,6 +72,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "common.throttling.RateLimitMiddleware",
+    "common.audit_log.AuditLogMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -130,6 +138,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# WhiteNoise configuration for serving static files
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Media files (uploads)
 MEDIA_URL = "media/"
@@ -271,6 +282,14 @@ LOGGING = {
             "backupCount": 5,
             "formatter": "verbose",
         },
+        "audit_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "audit.log",
+            "maxBytes": 1024 * 1024 * 20,  # 20 MB
+            "backupCount": 10,
+            "formatter": "verbose",
+        },
     },
     "loggers": {
         # Root logger
@@ -292,7 +311,7 @@ LOGGING = {
         },
         "django.server": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": "WARNING",
             "propagate": False,
         },
         # App loggers
@@ -309,6 +328,11 @@ LOGGING = {
         # Celery
         "celery": {
             "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "audit": {
+            "handlers": ["audit_file"],
             "level": "INFO",
             "propagate": False,
         },

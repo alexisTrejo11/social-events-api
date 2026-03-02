@@ -94,4 +94,4 @@ LOGGING["loggers"]["apps"]["level"] = "INFO"
 LOGGING["loggers"]["common"]["level"] = "INFO"
 LOGGING["loggers"]["django"]["level"] = "WARNING"
 
-print("🚀 Running in PRODUCTION mode with PostgreSQL")
+print("Running in PRODUCTION mode with PostgreSQL")

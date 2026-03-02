@@ -7,6 +7,7 @@ psycopg2-binary==2.9.10          # PostgreSQL driver
 djangorestframework==3.15.2
 djangorestframework-simplejwt==5.3.1   # JWT auth
 drf-spectacular==0.27.2                # OpenAPI / Swagger docs
+django-cors-headers==4.4.0             # CORS headers
 
 # Authentication
 django-allauth==65.3.0            # Email verification, social login (future-ready)
@@ -31,6 +32,10 @@ django-redis==5.4.0
 
 # Filtering & search
 django-filter==24.3               # DRF query param filtering
+
+# Production server
+gunicorn==23.0.0
+whitenoise==6.8.2
 
 # Dev & tooling
 django-debug-toolbar==4.4.6
