@@ -45,6 +45,8 @@ urlpatterns = [
     path("api/task-status/<str:task_id>/", task_status, name="task-status"),
     path("api/task-revoke/<str:task_id>/", revoke_task, name="task-revoke"),
     path("api/celery-health/", celery_health, name="celery-health"),
+    # Allauth (for OAuth administration)
+    path("accounts/", include("allauth.urls")),
 ]
 
 # Serve media files in development
