@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: social_events_postgres
     env_file:
-      - ../.env
+      - ../.env.docker
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -51,7 +51,7 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ../.env
+      - ../.env.docker
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432

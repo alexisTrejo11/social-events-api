@@ -34,11 +34,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy application code
 COPY . .
 
-RUN chmod +x /app/scripts/entrypoint.sh 2>/dev/null || true \
-    && chown -R django:django /app \
-    && chmod -R 755 /app/scripts
+# Make scripts executable and set ownership (as root before switching to django user)
+RUN chmod +x /app/scripts/*.sh && \
+    chown -R django:django /app
 
 
 ENV PYTHONUNBUFFERED=1 \
