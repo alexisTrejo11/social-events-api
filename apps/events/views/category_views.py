@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema_view, extend_schema
 from apps.events.models import Category, Tag
 from apps.events.serializers import CategorySerializer, TagSerializer
 from common.serializers import ErrorResponseSerializer
+from common.throttling import SearchThrottle
 
 
 @extend_schema_view(
@@ -44,6 +45,7 @@ class CategoryViewSet(
     serializer_class = CategorySerializer
     lookup_field = "slug"
     permission_classes = [IsAuthenticatedOrReadOnly]
+    throttle_classes = [SearchThrottle]
 
 
 @extend_schema_view(
@@ -82,3 +84,4 @@ class TagViewSet(
     serializer_class = TagSerializer
     lookup_field = "slug"
     permission_classes = [IsAuthenticatedOrReadOnly]
+    throttle_classes = [SearchThrottle]

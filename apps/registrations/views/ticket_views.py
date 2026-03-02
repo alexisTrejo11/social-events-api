@@ -17,6 +17,7 @@ from common.serializers import (
     ErrorResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import ReadHeavyThrottle, WriteSensitiveThrottle
 
 
 @extend_schema_view(
@@ -124,6 +125,12 @@ class TicketTierViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [IsAuthenticated(), CanManageTicketTiers()]
         return [IsAuthenticatedOrReadOnly()]
+
+    def get_throttles(self):
+        """Return appropriate throttles based on action."""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [WriteSensitiveThrottle()]
+        return [ReadHeavyThrottle()]
 
     def perform_create(self, serializer):
         """Create ticket tier for the event."""

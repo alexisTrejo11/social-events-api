@@ -29,6 +29,11 @@ from common.serializers import (
     UserNotFoundErrorSerializer,
     OrganizationMemberErrorSerializer,
 )
+from common.throttling import (
+    ReadHeavyThrottle,
+    WriteSensitiveThrottle,
+    WriteStandardThrottle,
+)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -170,6 +175,22 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         elif self.action in ["create", "update", "partial_update"]:
             return OrganizationCreateUpdateSerializer
         return OrganizationDetailSerializer
+
+    def get_throttles(self):
+        """Return appropriate throttles based on action."""
+        if self.action == "list":
+            return [ReadHeavyThrottle()]
+        elif self.action == "create":
+            return [WriteSensitiveThrottle()]
+        elif self.action in ["update", "partial_update", "destroy"]:
+            return [WriteSensitiveThrottle()]
+        elif self.action in ["members", "events"]:
+            return [ReadHeavyThrottle()]
+        elif self.action in ["invite_member", "update_member", "remove_member"]:
+            return [WriteSensitiveThrottle()]
+        elif self.action in ["join", "leave"]:
+            return [WriteStandardThrottle()]
+        return [ReadHeavyThrottle()]
 
     def perform_create(self, serializer):
         """Create organization and add creator as owner"""

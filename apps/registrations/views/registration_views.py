@@ -28,6 +28,12 @@ from common.serializers import (
     ValidationErrorSerializer,
     MessageResponseSerializer,
 )
+from common.throttling import (
+    ReadHeavyThrottle,
+    RegistrationThrottle,
+    WriteStandardThrottle,
+    CheckInThrottle,
+)
 
 
 @extend_schema(
@@ -52,6 +58,7 @@ class EventRegistrationsListView(generics.ListAPIView):
 
     serializer_class = RegistrationSerializer
     permission_classes = [IsAuthenticated, IsEventHost]
+    throttle_classes = [ReadHeavyThrottle]
 
     def get_queryset(self):
         """Filter registrations by event slug."""
@@ -90,6 +97,15 @@ def register_for_event(request, event_slug):
 
     POST /events/{slug}/register/
     """
+    from common.throttling import RegistrationThrottle
+
+    # Manual throttle check for function-based view
+    throttle = RegistrationThrottle()
+    if not throttle.allow_request(request, register_for_event):
+        from rest_framework.exceptions import Throttled
+
+        raise Throttled()
+
     event = get_object_or_404(Event, slug=event_slug, is_deleted=False)
 
     serializer = RegistrationCreateSerializer(
@@ -188,6 +204,7 @@ class UserRegistrationsListView(generics.ListAPIView):
 
     serializer_class = RegistrationSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ReadHeavyThrottle]
 
     def get_queryset(self):
         """Return registrations for the current user."""
@@ -274,6 +291,15 @@ def check_in_attendee(request, event_slug, registration_id):
 
     POST /events/{slug}/registrations/{id}/check-in/
     """
+    from common.throttling import CheckInThrottle
+
+    # Manual throttle check for function-based view
+    throttle = CheckInThrottle()
+    if not throttle.allow_request(request, check_in_attendee):
+        from rest_framework.exceptions import Throttled
+
+        raise Throttled()
+
     event = get_object_or_404(Event, slug=event_slug, is_deleted=False)
     registration = get_object_or_404(Registration, id=registration_id, event=event)
 

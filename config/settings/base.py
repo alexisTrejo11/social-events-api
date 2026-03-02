@@ -60,6 +60,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "common.throttling.RateLimitMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -160,6 +161,24 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "common.throttling.AuthenticatedUserThrottle",
+        "common.throttling.AnonThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        # Global defaults — override per-view with specific throttle classes
+        "authenticated": "1000/day",
+        "anon": "100/day",
+        # Per-profile scopes
+        "auth_actions": "10/minute",
+        "read_heavy": "300/minute",
+        "write_standard": "60/minute",
+        "write_sensitive": "20/minute",
+        "search": "30/minute",
+        "registration": "10/minute",
+        "check_in": "120/minute",
+        "notification_read": "60/minute",
+    },
 }
 
 # DRF Spectacular (API Documentation)
@@ -187,4 +206,15 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
+}
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://localhost:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
 }

@@ -15,6 +15,7 @@ from common.serializers import (
     ErrorResponseSerializer,
     MessageResponseSerializer,
 )
+from common.throttling import ReadHeavyThrottle, WriteStandardThrottle
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class UserFollowersView(generics.ListAPIView):
 
     serializer_class = UserFollowerSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ReadHeavyThrottle]
 
     def get_queryset(self):
         """Get followers for the specified user"""
@@ -63,6 +65,7 @@ class UserFollowingView(generics.ListAPIView):
 
     serializer_class = UserFollowSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ReadHeavyThrottle]
 
     def get_queryset(self):
         """Get following for the specified user"""
@@ -91,6 +94,7 @@ class FollowUserView(generics.GenericAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [WriteStandardThrottle]
 
     def post(self, request, username=None):
         """Follow user"""
@@ -153,6 +157,7 @@ class UnfollowUserView(generics.GenericAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [WriteStandardThrottle]
 
     def delete(self, request, username=None):
         """Unfollow user"""
@@ -196,6 +201,7 @@ class UserFeedView(generics.GenericAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ReadHeavyThrottle]
 
     def get(self, request):
         """Get personalized feed"""

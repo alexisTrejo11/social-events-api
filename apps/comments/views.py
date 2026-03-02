@@ -24,6 +24,7 @@ from common.serializers import (
     MessageResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import ReadHeavyThrottle, WriteStandardThrottle
 
 
 @extend_schema(
@@ -49,6 +50,7 @@ class EventCommentsListCreateView(generics.ListCreateAPIView):
     """
 
     serializer_class = CommentListSerializer
+    throttle_classes = [ReadHeavyThrottle, WriteStandardThrottle]
 
     def get_event(self):
         """Get event from URL parameter and cache it."""

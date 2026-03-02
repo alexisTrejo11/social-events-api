@@ -17,6 +17,7 @@ from common.serializers import (
     ErrorResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import NotificationReadThrottle
 
 
 @extend_schema(
@@ -55,6 +56,7 @@ class NotificationListView(generics.ListAPIView):
 
     serializer_class = NotificationListSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [NotificationReadThrottle]
 
     def get_queryset(self):
         """Return notifications for the current user."""
@@ -97,6 +99,7 @@ class NotificationDetailView(generics.RetrieveAPIView):
 
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [NotificationReadThrottle]
 
     def get_queryset(self):
         """Return notifications for the current user."""

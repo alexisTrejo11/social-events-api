@@ -16,6 +16,7 @@ from common.serializers import (
     MessageResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import ReadHeavyThrottle, WriteSensitiveThrottle
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ReadHeavyThrottle, WriteSensitiveThrottle]
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:
@@ -97,6 +99,7 @@ class DeactivateAccountView(generics.GenericAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [WriteSensitiveThrottle]
 
     def delete(self, request, *args, **kwargs):
         """Deactivate account (soft delete)"""
@@ -137,6 +140,7 @@ class PublicUserProfileView(generics.RetrieveAPIView):
     serializer_class = PublicUserProfileSerializer
     lookup_field = "username"
     permission_classes = [AllowAny]
+    throttle_classes = [ReadHeavyThrottle]
 
     def retrieve(self, request, *args, **kwargs):
         """Get public user profile"""
@@ -185,6 +189,7 @@ class UserPreferencesView(generics.RetrieveUpdateAPIView):
 
     serializer_class = UserPreferencesSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ReadHeavyThrottle, WriteSensitiveThrottle]
 
     def get_object(self):
         """Get or create user preferences"""
