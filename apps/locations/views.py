@@ -23,6 +23,7 @@ from common.serializers import (
     ErrorResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import ReadHeavyThrottle, WriteSensitiveThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,12 @@ class LocationViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
+
+    def get_throttles(self):
+        """Return appropriate throttles based on action."""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [WriteSensitiveThrottle()]
+        return [ReadHeavyThrottle()]
 
     def list(self, request, *args, **kwargs):
         """List all locations"""

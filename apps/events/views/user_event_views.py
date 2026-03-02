@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema
 from apps.events.models import Event
 from apps.events.serializers import EventListSerializer
 from common.serializers import ErrorResponseSerializer
+from common.throttling import ReadHeavyThrottle
 
 
 @extend_schema(
@@ -27,6 +28,7 @@ class UserFavoriteEventsView(generics.ListAPIView):
 
     serializer_class = EventListSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ReadHeavyThrottle]
 
     def get_queryset(self):
         """Return events favorited by the current user."""

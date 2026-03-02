@@ -37,6 +37,11 @@ from common.serializers import (
     MessageResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import (
+    ReadHeavyThrottle,
+    WriteSensitiveThrottle,
+    WriteStandardThrottle,
+)
 
 
 @extend_schema_view(
@@ -223,6 +228,26 @@ class EventViewSet(viewsets.ModelViewSet):
         elif self.action in ["assign_role", "update_role", "remove_role"]:
             return [IsAuthenticated(), CanManageEventStaff()]
         return [IsAuthenticatedOrReadOnly()]
+
+    def get_throttles(self):
+        """Return appropriate throttles based on action."""
+        if self.action == "list":
+            return [ReadHeavyThrottle()]
+        elif self.action == "create":
+            return [WriteSensitiveThrottle()]
+        elif self.action in [
+            "update",
+            "partial_update",
+            "destroy",
+            "publish",
+            "cancel",
+        ]:
+            return [WriteSensitiveThrottle()]
+        elif self.action in ["favorite", "unfavorite"]:
+            return [WriteStandardThrottle()]
+        elif self.action in ["assign_role", "update_role", "remove_role"]:
+            return [WriteSensitiveThrottle()]
+        return [ReadHeavyThrottle()]
 
     def perform_destroy(self, instance):
         """Soft delete instead of hard delete."""

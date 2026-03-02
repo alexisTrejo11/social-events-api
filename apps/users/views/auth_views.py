@@ -18,6 +18,7 @@ from common.serializers import (
     MessageResponseSerializer,
     ValidationErrorSerializer,
 )
+from common.throttling import AuthActionsThrottle
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [AuthActionsThrottle]
 
     def create(self, request, *args, **kwargs):
         """Create user and return user data"""
@@ -85,6 +87,8 @@ class LoginView(generics.GenericAPIView):
 
     serializer_class = UserLoginSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [AuthActionsThrottle]
+    throttle_classes = [AuthActionsThrottle]
 
     def post(self, request, *args, **kwargs):
         """Authenticate and return tokens"""
@@ -166,6 +170,7 @@ class VerifyEmailView(generics.GenericAPIView):
 
     serializer_class = EmailVerificationSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [AuthActionsThrottle]
 
     def post(self, request, *args, **kwargs):
         """Verify email"""
@@ -202,6 +207,7 @@ class ResendVerificationView(generics.GenericAPIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [AuthActionsThrottle]
 
     def post(self, request, *args, **kwargs):
         """Resend verification email"""
@@ -272,6 +278,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
 
     serializer_class = PasswordResetRequestSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [AuthActionsThrottle]
 
     def post(self, request, *args, **kwargs):
         """Send password reset email"""
@@ -306,6 +313,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 
     serializer_class = PasswordResetConfirmSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [AuthActionsThrottle]
 
     def post(self, request, *args, **kwargs):
         """Reset password"""
