@@ -9,8 +9,12 @@ djangorestframework-simplejwt==5.3.1   # JWT auth
 drf-spectacular==0.27.2                # OpenAPI / Swagger docs
 django-cors-headers==4.4.0             # CORS headers
 
-# Authentication
-django-allauth==65.3.0            # Email verification, social login (future-ready)
+# OAuth / Social Authentication
+django-allauth==65.3.0                 # OAuth2 (Google, GitHub, etc.)
+dj-rest-auth==7.0.0                    # REST API endpoints for allauth
+requests==2.32.3                       # HTTP library (required by allauth)
+cryptography==44.0.0                   # Cryptographic operations (required by allauth)
+
 
 # Image handling
 Pillow==11.1.0                    # Required by ImageField

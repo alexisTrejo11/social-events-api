@@ -21,6 +21,12 @@ from .social_views import (
     UnfollowUserView,
     UserFeedView,
 )
+from .oauth_views import (
+    GoogleLoginView,
+    GitHubLoginView,
+    ListSocialAccountsView,
+    DisconnectSocialAccountView,
+)
 
 __all__ = [
     # Auth
@@ -43,4 +49,9 @@ __all__ = [
     "FollowUserView",
     "UnfollowUserView",
     "UserFeedView",
+    # OAuth
+    "GoogleLoginView",
+    "GitHubLoginView",
+    "ListSocialAccountsView",
+    "DisconnectSocialAccountView",
 ]
