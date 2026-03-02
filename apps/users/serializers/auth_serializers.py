@@ -94,9 +94,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         logger.info(f"New user registered: {user.email}")
 
-        # TODO: Send verification email
-        # from apps.users.tasks import send_verification_email
-        # send_verification_email.delay(user.id)
+        from apps.users.tasks import send_verification_email
+
+        send_verification_email(user.id)
 
         return user
 
