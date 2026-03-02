@@ -1,0 +1,22 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Check-in Confirmed: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Welcome! You're Checked In ✓</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>You've been successfully checked in to the event. Enjoy!</p>
+    
+    <div class="info-box" style="border-left-color: #48bb78;">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content">
+            Thank you for attending. We hope you have a great experience!
+        </div>
+    </div>
+    
+    <p>We'd love to hear your feedback after the event. A survey link will be sent to you soon.</p>
+</div>
+{% endblock %}

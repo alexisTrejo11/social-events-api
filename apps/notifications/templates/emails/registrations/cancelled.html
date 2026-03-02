@@ -1,0 +1,29 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Registration Cancelled: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Registration Cancelled</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>This confirms that your registration for the following event has been cancelled:</p>
+    
+    <div class="info-box" style="border-left-color: #718096;">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content" style="font-size: 16px;">
+            <strong>📅 Was scheduled for:</strong> {{ event_date }}<br>
+            <strong>✗ Status:</strong> Cancelled
+        </div>
+    </div>
+    
+    <p>We're sorry you can't make it! If you change your mind and the event hasn't started yet, you can register again.</p>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ site_url }}/events" class="btn">Browse Other Events</a>
+    </p>
+    
+    <p>We hope to see you at future events!</p>
+</div>
+{% endblock %}

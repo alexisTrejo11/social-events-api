@@ -1,0 +1,28 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Event Cancelled: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Event Cancellation Notice</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>We regret to inform you that the following event has been cancelled:</p>
+    
+    <div class="info-box" style="border-left-color: #f56565;">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content">
+            We apologize for any inconvenience this may cause.
+        </div>
+    </div>
+    
+    <p>If you have any questions or concerns, please don't hesitate to reach out to the event organizer or our support team.</p>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ site_url }}/events" class="btn">Browse Other Events</a>
+    </p>
+    
+    <p>We hope to see you at future events!</p>
+</div>
+{% endblock %}

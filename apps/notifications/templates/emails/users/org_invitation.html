@@ -1,0 +1,24 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Invitation to Join {{ org_name }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">You're Invited! 🏢</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p><strong>{{ inviter_name }}</strong> has invited you to join <strong>{{ org_name }}</strong> on {{ site_name }}.</p>
+    
+    <div class="info-box">
+        <div class="info-box-title">{{ org_name }}</div>
+        <div class="info-box-content">
+            Join this organization to collaborate on events, connect with members, and be part of something great!
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ org_url }}" class="btn">View Organization</a>
+    </p>
+</div>
+{% endblock %}

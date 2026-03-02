@@ -1,0 +1,26 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Event Update: {{ event_title }}{% endblock %}
+
+{% block content %}
+<h1 class="greeting">Event Update 📢</h1>
+
+<div class="content">
+    <p>Hi {{ user_name }},</p>
+    
+    <p>There's been an update to an event you're registered for:</p>
+    
+    <div class="info-box">
+        <div class="info-box-title" style="font-size: 20px; margin-bottom: 12px;">{{ event_title }}</div>
+        <div class="info-box-content">
+            Please check the event page for the latest information and any changes.
+        </div>
+    </div>
+    
+    <p style="text-align: center; margin: 35px 0;">
+        <a href="{{ event_url }}" class="btn">View Updates</a>
+    </p>
+    
+    <p>Stay informed and we'll see you at the event!</p>
+</div>
+{% endblock %}
