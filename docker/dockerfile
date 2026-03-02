@@ -39,6 +39,7 @@ COPY . .
 
 # Make scripts executable and set ownership (as root before switching to django user)
 RUN chmod +x /app/scripts/*.sh && \
+    mkdir -p /app/staticfiles /app/media && \
     chown -R django:django /app
 
 
