@@ -20,18 +20,19 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from common.view import test
 
 urlpatterns = [
     # Admin
     path("admin/", admin.site.urls),
-    # API v1
-    path("api/v1/", include("apps.users.urls")),
-    path("api/v1/", include("apps.organizations.urls")),
-    path("api/v1/", include("apps.locations.urls")),
-    path("api/v1/", include("apps.events.urls")),
-    path("api/v1/", include("apps.registrations.urls")),
-    path("api/v1/", include("apps.comments.urls")),
-    path("api/v1/notifications/", include("apps.notifications.urls")),
+    # API v2
+    path("api/v2/", include("apps.users.urls")),
+    path("api/v2/", include("apps.organizations.urls")),
+    path("api/v2/", include("apps.locations.urls")),
+    path("api/v2/", include("apps.events.urls")),
+    path("api/v2/", include("apps.registrations.urls")),
+    path("api/v2/", include("apps.comments.urls")),
+    path("api/v2/notifications/", include("apps.notifications.urls")),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
@@ -39,6 +40,7 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    path("api/test/", test, name="test"),
 ]
 
 # Serve media files in development
