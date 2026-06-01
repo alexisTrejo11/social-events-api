@@ -12,6 +12,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, []),
     DATABASE_URL=(str, f'sqlite:///{BASE_DIR / "db.sqlite3"}'),
     REDIS_URL=(str, "redis://localhost:6379/1"),
+    REDIS_KEY_PREFIX=(str, "social-events-api:"),
     CELERY_BROKER_URL=(str, "redis://localhost:6379/0"),
     JWT_ACCESS_TOKEN_LIFETIME_MINUTES=(int, 60),
     JWT_REFRESH_TOKEN_LIFETIME_DAYS=(int, 7),
@@ -281,14 +282,25 @@ SIMPLE_JWT = {
     "TOKEN_TYPE_CLAIM": "token_type",
 }
 
+# Redis key namespace (shared Upstash / Redis instances across projects)
+REDIS_KEY_PREFIX = env("REDIS_KEY_PREFIX")
+
+
+def redis_cache_options(**extra):
+    """django-redis OPTIONS with a project-scoped KEY_PREFIX."""
+    return {
+        "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "KEY_PREFIX": REDIS_KEY_PREFIX,
+        **extra,
+    }
+
+
 # Cache Configuration (Redis)
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": env("REDIS_URL"),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
+        "OPTIONS": redis_cache_options(),
     }
 }
 
@@ -304,6 +316,8 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 # Celery Configuration
 CELERY_BROKER_URL = env("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = env("REDIS_URL")
+CELERY_BROKER_TRANSPORT_OPTIONS = {"global_keyprefix": REDIS_KEY_PREFIX}
+CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {"global_keyprefix": REDIS_KEY_PREFIX}
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

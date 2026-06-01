@@ -11,6 +11,8 @@ EMAIL="${2:-admin@example.com}"
 STAGING="${3:-0}" # Set to 1 for staging (testing)
 DATA_PATH="./certbot"
 RSA_KEY_SIZE=4096
+COMPOSE_FILE="docker/docker-compose.local.yml"
+COMPOSE="docker compose --env-file .env -f ${COMPOSE_FILE}"
 
 # Colores para output
 RED='\033[0;31m'
@@ -63,7 +65,7 @@ echo -e "${YELLOW}[3/6] Creando certificado temporal (dummy) para iniciar Nginx.
 CERT_PATH="${DATA_PATH}/conf/live/${DOMAIN_NAME}"
 mkdir -p "${CERT_PATH}"
 if [ ! -e "${CERT_PATH}/privkey.pem" ]; then
-    docker-compose -f docker/docker-compose.yml run --rm --entrypoint "\
+    ${COMPOSE} run --rm --entrypoint "\
         openssl req -x509 -nodes -newkey rsa:${RSA_KEY_SIZE} -days 1 \
         -keyout '/etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem' \
         -out '/etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem' \
@@ -80,12 +82,12 @@ fi
 
 # Iniciar nginx
 echo -e "${YELLOW}[4/6] Iniciando Nginx...${NC}"
-docker-compose -f docker/docker-compose.yml up -d nginx
+${COMPOSE} up -d nginx
 echo -e "${GREEN}✓ Nginx iniciado${NC}"
 
 # Borrar certificado dummy
 echo -e "${YELLOW}[5/6] Eliminando certificado temporal...${NC}"
-docker-compose -f docker/docker-compose.yml run --rm --entrypoint "\
+${COMPOSE} run --rm --entrypoint "\
     rm -rf /etc/letsencrypt/live/${DOMAIN_NAME} && \
     rm -rf /etc/letsencrypt/archive/${DOMAIN_NAME} && \
     rm -rf /etc/letsencrypt/renewal/${DOMAIN_NAME}.conf" certbot
@@ -104,7 +106,7 @@ else
 fi
 
 # Solicitar certificado
-docker-compose -f docker/docker-compose.yml run --rm --entrypoint "\
+${COMPOSE} run --rm --entrypoint "\
     certbot certonly --webroot -w /var/www/certbot \
     ${STAGING_ARG} \
     --email ${EMAIL} \
@@ -123,18 +125,18 @@ echo ""
 
 # Cambiar configuración de Nginx a HTTPS
 echo -e "${YELLOW}Cambiando configuración de Nginx a HTTPS...${NC}"
-sed -i 's|app-http-only.conf.template|app.conf.template|g' docker/docker-compose.yml
+sed -i.bak 's|app-http-only.conf.template|app.conf.template|g' docker/docker-compose.local.yml && rm -f docker/docker-compose.local.yml.bak
 echo -e "${GREEN}✓ Configuración actualizada${NC}"
 
 echo ""
 echo -e "Ahora puedes:"
-echo -e "1. Actualizar .env.docker con seguridad HTTPS:"
+echo -e "1. Actualizar .env con seguridad HTTPS:"
 echo -e "   ${YELLOW}SECURE_SSL_REDIRECT=True${NC}"
 echo -e "   ${YELLOW}SESSION_COOKIE_SECURE=True${NC}"
 echo -e "   ${YELLOW}CSRF_COOKIE_SECURE=True${NC}"
 echo -e ""
-echo -e "2. Reiniciar servicios: ${YELLOW}docker-compose -f docker/docker-compose.yml restart nginx${NC}"
-echo -e "   O reiniciar todo: ${YELLOW}docker-compose -f docker/docker-compose.yml down && docker-compose -f docker/docker-compose.yml up -d${NC}"
+echo -e "2. Reiniciar servicios: ${YELLOW}${COMPOSE} restart nginx${NC}"
+echo -e "   O reiniciar todo: ${YELLOW}${COMPOSE} down && ${COMPOSE} up -d${NC}"
 echo ""
 echo -e "Los certificados se renovarán automáticamente cada 12 horas."
 echo ""

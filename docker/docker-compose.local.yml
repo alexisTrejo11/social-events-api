@@ -1,13 +1,17 @@
+# Local profile: full stack (Postgres, Redis, app, Nginx, Certbot).
+# Service hostnames below override .env so containers talk on the Docker network.
+# Run from repo root — see docker/README.md
+
 services:
   postgres:
     image: postgres:15-alpine
     container_name: social_events_postgres
     env_file:
-      - ../.env.docker
+      - ../.env
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-social_events_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-social_events_db}
     ports:
       - "5431:5432"
     volumes:
@@ -51,16 +55,19 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ../.env.docker
+      - ../.env
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-social_events_db}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - POPULATE_DUMMY_DATA=${POPULATE_DB:-false}
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-social_events_db}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      POPULATE_DUMMY_DATA: ${POPULATE_DB:-false}
     expose:
       - "8000"
     volumes:
@@ -80,14 +87,12 @@ services:
     depends_on:
       - web
     environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Use app-http-only.conf.template until SSL certificates are generated
-      # After running init-letsencrypt.sh, change to app.conf.template
       - ./nginx/app-http-only.conf.template:/etc/nginx/templates/app.conf.template:ro
       - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - static_volume:/app/staticfiles:ro
@@ -122,11 +127,8 @@ volumes:
     driver: local
   certbot_www:
     driver: local
-  pgadmin_data:
-    driver: local
 
 networks:
   social_events_network:
     driver: bridge
     name: social_events_network
-

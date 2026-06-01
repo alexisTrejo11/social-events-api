@@ -1,0 +1,29 @@
+# Production profile: app container only.
+# Postgres and Redis must be reachable via POSTGRES_* / REDIS_* in ../.env (managed cloud).
+# Run from repo root — see docker/README.md
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile
+    container_name: social_events_api
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - logs_volume:/app/logs
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    restart: unless-stopped
+
+volumes:
+  logs_volume:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local

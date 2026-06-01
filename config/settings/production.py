@@ -21,11 +21,11 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("POSTGRES_DB", default="social_events_db"),
-            "USER": env("POSTGRES_USER", default="postgres"),
-            "PASSWORD": env("POSTGRES_PASSWORD", default="postgres"),
-            "HOST": env("POSTGRES_HOST", default="postgres"),
-            "PORT": env("POSTGRES_PORT", default="5432"),
+            "NAME": env("POSTGRES_DB"),
+            "USER": env("POSTGRES_USER"),
+            "PASSWORD": env("POSTGRES_PASSWORD"),
+            "HOST": env("POSTGRES_HOST"),
+            "PORT": env("POSTGRES_PORT"),
             "CONN_MAX_AGE": 600,
             "OPTIONS": {
                 "connect_timeout": 10,
@@ -37,14 +37,13 @@ else:
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{env('REDIS_HOST', default='redis')}:{env('REDIS_PORT', default='6379')}/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
+        "LOCATION": env("REDIS_URL"),
+        "OPTIONS": redis_cache_options(
+            CONNECTION_POOL_KWARGS={
                 "max_connections": 50,
                 "retry_on_timeout": True,
             },
-        },
+        ),
     }
 }
 

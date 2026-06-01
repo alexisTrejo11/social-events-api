@@ -26,14 +26,13 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{env('REDIS_HOST', default='localhost')}:{env('REDIS_PORT', default='6379')}/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
+        "LOCATION": env("REDIS_URL"),
+        "OPTIONS": redis_cache_options(
+            CONNECTION_POOL_KWARGS={
                 "max_connections": 50,
                 "retry_on_timeout": True,
             },
-        },
+        ),
     }
 }
 

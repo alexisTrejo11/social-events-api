@@ -56,5 +56,4 @@ if [ -n "${REDIS_HOST}" ] && [ -n "${REDIS_PORT}" ]; then
 fi
 
 echo "Starting the application..."
-python manage.py runserver 0.0.0.0:${PORT:-8000} --settings=config.settings.production
-fi
+exec python manage.py runserver 0.0.0.0:${PORT:-8000} --settings=config.settings.production

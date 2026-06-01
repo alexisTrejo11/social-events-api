@@ -131,7 +131,9 @@ social-events-api/
 │
 ├── docker/                        # Docker configuration
 │   ├── dockerfile                # Multi-stage Docker build
-│   ├── docker-compose.yml        # Service orchestration
+│   ├── docker-compose.local.yml  # Local stack (Postgres, Redis, app, Nginx)
+│   ├── docker-compose.prod.yml   # Production (app only, external DB/Redis)
+│   ├── README.md                 # Docker profiles and commands
 │   └── nginx/                    # Nginx configuration files
 │
 ├── docs/                          # Documentation
@@ -266,21 +268,16 @@ celery -A config beat --loglevel=info
 
 ### Docker Setup
 
+See [docker/README.md](docker/README.md) for local vs production profiles.
+
 ```bash
-# Navigate to docker directory
-cd docker
+# From repository root — local full stack
+cp .env.example .env
+docker compose --env-file .env -f docker/docker-compose.local.yml up -d --build
 
-# Build and start all services
-docker-compose up -d
-
-# Run migrations
-docker-compose exec web python manage.py migrate
-
-# Create superuser
-docker-compose exec web python manage.py createsuperuser
-
-# View logs
-docker-compose logs -f
+# Migrations / superuser
+docker compose --env-file .env -f docker/docker-compose.local.yml exec web python manage.py migrate
+docker compose --env-file .env -f docker/docker-compose.local.yml exec web python manage.py createsuperuser
 ```
 
 ## 📊 Performance Metrics
