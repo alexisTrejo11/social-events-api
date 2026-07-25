@@ -82,9 +82,14 @@ class EventCommentsListCreateView(generics.ListCreateAPIView):
             return [IsAuthenticated(), CanCommentOnEvent()]
         return [IsAuthenticatedOrReadOnly()]
 
+    def get_serializer_context(self):
+        """Include the event so create/update serializers can attach it."""
+        context = super().get_serializer_context()
+        context["event"] = self.get_event()
+        return context
+
     def perform_create(self, serializer):
-        """Create comment with event and author."""
-        event = self.get_event()
+        """Create comment with event and author (from serializer context)."""
         serializer.save()
 
         # TODO: Send notification to event organizer

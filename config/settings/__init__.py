@@ -14,6 +14,8 @@ settings_module = os.environ.get("DJANGO_SETTINGS_MODULE", "").split(".")[-1]
 
 if settings_module == "production":
     from .production import *
+elif settings_module == "test":
+    from .test import *
 elif settings_module == "development":
     from .development import *
 else:

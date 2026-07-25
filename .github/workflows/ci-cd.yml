@@ -163,17 +163,7 @@ jobs:
 
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-          export IMAGE IMAGE_TAG
-          docker compose --env-file .env -f docker/docker-compose.prod.yml pull web
-          docker compose --env-file .env -f docker/docker-compose.prod.yml up -d web
-
-          # Safe cleanup: only unused images for THIS project (not host-wide prune).
-          echo "Cleaning unused images for $IMAGE only..."
-          docker images "$IMAGE" --format '{{.ID}}' | sort -u | while read -r id; do
-            if [ -z "$(docker ps -aq --filter "ancestor=${id}")" ]; then
-              docker rmi "$id" 2>/dev/null || true
-            fi
-          done
+          make refresh
 
           docker logout ghcr.io || true
           echo "Deploy finished."

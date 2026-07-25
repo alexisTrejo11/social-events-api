@@ -329,6 +329,9 @@ FRONTEND_URL = env("FRONTEND_URL")
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
+# File handlers require this directory to exist before dictConfig runs.
+(BASE_DIR / "logs").mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

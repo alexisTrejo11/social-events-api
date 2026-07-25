@@ -96,20 +96,24 @@ class OrganizationMembership(models.Model):
     def __str__(self) -> str:
         return f"{self.user.get_full_name()} — {self.role} @ {self.organization.name}"
 
-    def get_admin_roles(self) -> list[Role]:
-        return [self.Role.OWNER, self.Role.ADMIN]
+    @classmethod
+    def get_admin_roles(cls) -> list[Role]:
+        return [cls.Role.OWNER, cls.Role.ADMIN]
 
-    def get_manager_roles(self) -> list[Role]:
-        return [self.Role.MANAGER, self.Role.OWNER, self.Role.ADMIN]
+    @classmethod
+    def get_manager_roles(cls) -> list[Role]:
+        return [cls.Role.MANAGER, cls.Role.OWNER, cls.Role.ADMIN]
 
-    def get_member_roles(self) -> list[Role]:
-        return [self.Role.OWNER, self.Role.ADMIN, self.Role.MANAGER, self.Role.MEMBER]
+    @classmethod
+    def get_member_roles(cls) -> list[Role]:
+        return [cls.Role.OWNER, cls.Role.ADMIN, cls.Role.MANAGER, cls.Role.MEMBER]
 
-    def get_all_roles(self) -> list[Role]:
+    @classmethod
+    def get_all_roles(cls) -> list[Role]:
         return [
-            self.Role.OWNER,
-            self.Role.ADMIN,
-            self.Role.MANAGER,
-            self.Role.MEMBER,
-            self.Role.GUEST,
+            cls.Role.OWNER,
+            cls.Role.ADMIN,
+            cls.Role.MANAGER,
+            cls.Role.MEMBER,
+            cls.Role.GUEST,
         ]
