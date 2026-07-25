@@ -4,6 +4,8 @@
 
 services:
   web:
+    # CI/CD sets IMAGE + IMAGE_TAG to pull from GHCR; local builds use `build:` below.
+    image: ${IMAGE:-social_events_api}:${IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: docker/dockerfile
